@@ -14,16 +14,6 @@ ADMIN_HOME=$(eval echo ~$ADMIN_USER)
 
 filter="gpdb"
 
-env_file=""
-
-if [ "$DB_VERSION" = "synxdb_4" ]; then
-    env_file="${GPHOME}/cluster_env.sh"
-elif [ "$DB_VERSION" = "synxdb_2" ]; then
-    env_file="${GPHOME}/synxdb_path.sh"
-else
-    env_file="${GPHOME}/greenplum_path.sh"
-fi
-
 function copy_script()
 {
   echo "copy the start and stop scripts to the segment hosts in the cluster"
@@ -69,10 +59,106 @@ function start_gpfdist()
   wait
 }
 
-if [ "${RUN_MODEL}" == "local" ]; then
+
+if [ "${RUN_MODEL}" == "remote" ]; then
+  sh ${PWD}/stop_gpfdist.sh
+  # Split CLIENT_GEN_PATH into array of paths to support multiple directories
+  IFS=' ' read -ra GEN_PATHS <<< "${CLIENT_GEN_PATH}"
+  
+  if [ ${#GEN_PATHS[@]} -eq 0 ]; then
+    log_time "ERROR: CLIENT_GEN_PATH is empty or not set"
+    exit 1
+  fi
+
+  CLOUDBERRY_BINARY_PATH=${GPHOME}
+  env_file=""
+
+  if [ "$DB_VERSION" = "synxdb_4" ]; then
+    env_file="${CLOUDBERRY_BINARY_PATH}/cloudberry-env.sh"
+  elif [ "$DB_VERSION" = "synxdb_2" ]; then
+    env_file="${CLOUDBERRY_BINARY_PATH}/synxdb_path.sh"
+  else
+    env_file="${CLOUDBERRY_BINARY_PATH}/greenplum_path.sh"
+  fi
+
+  if [ ! -f "${env_file}" ]; then
+    log_time "Environment file ${env_file} not found, searching for alternative configuration files..."
+    
+    config_files=("greenplum_path.sh" "cluster_env.sh" "synxdb_path.sh" "cloudberry-env.sh")
+    found_config=""
+    
+    for config in "${config_files[@]}"; do
+        if [ -f "${CLOUDBERRY_BINARY_PATH}/${config}" ]; then
+            found_config="${config}"
+            log_time "Found configuration file: ${CLOUDBERRY_BINARY_PATH}/${config}"
+            break
+        fi
+    done
+    
+    if [ -n "${found_config}" ]; then
+        env_file="${CLOUDBERRY_BINARY_PATH}/${found_config}"
+        log_time "Updated environment file to: ${env_file}"
+    else
+        log_time "ERROR: No configuration files found in ${CLOUDBERRY_BINARY_PATH}"
+        log_time "Searched for: ${config_files[*]}"
+        exit 1
+    fi
+  else
+    log_time "Using environment file: ${env_file}"
+  fi
+  
+  # Start gpfdist for each data path with different ports
+  PORT=18888
+  for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
+    log_time "Starting gpfdist on port ${PORT} for path: ${GEN_DATA_PATH}"
+    sh ${PWD}/start_gpfdist.sh $PORT "${GEN_DATA_PATH}" ${env_file}
+    let PORT=$PORT+1
+  done
+  
+  # Set GEN_DATA_PATH to the first path for backward compatibility
+  GEN_DATA_PATH=${GEN_PATHS[0]}
+elif [ "${RUN_MODEL}" == "local" ]; then
+  CLOUDBERRY_BINARY_PATH=${GPHOME}
+  env_file=""
+
+  if [ "$DB_VERSION" = "synxdb_4" ]; then
+    env_file="${CLOUDBERRY_BINARY_PATH}/cloudberry-env.sh"
+  elif [ "$DB_VERSION" = "synxdb_2" ]; then
+    env_file="${CLOUDBERRY_BINARY_PATH}/synxdb_path.sh"
+  else
+    env_file="${CLOUDBERRY_BINARY_PATH}/greenplum_path.sh"
+  fi
+
+  if [ ! -f "${env_file}" ]; then
+    log_time "Environment file ${env_file} not found, searching for alternative configuration files..."
+    
+    config_files=("greenplum_path.sh" "cluster_env.sh" "synxdb_path.sh" "cloudberry-env.sh")
+    found_config=""
+    
+    for config in "${config_files[@]}"; do
+        if [ -f "${CLOUDBERRY_BINARY_PATH}/${config}" ]; then
+            found_config="${config}"
+            log_time "Found configuration file: ${CLOUDBERRY_BINARY_PATH}/${config}"
+            break
+        fi
+    done
+    
+    if [ -n "${found_config}" ]; then
+        env_file="${CLOUDBERRY_BINARY_PATH}/${found_config}"
+        log_time "Updated environment file to: ${env_file}"
+    else
+        log_time "ERROR: No configuration files found in ${CLOUDBERRY_BINARY_PATH}"
+        log_time "Searched for: ${config_files[*]}"
+        exit 1
+    fi
+  else
+    log_time "Using environment file: ${env_file}"
+  fi
+  
   copy_script
   start_gpfdist
 fi
+
 # Wait for all gpfidist to start
 # sleep 10
 
@@ -180,10 +266,13 @@ print_log ${tuples}
 log_time "Clean up gpfdist"
 
 if [ "${RUN_MODEL}" == "remote" ]; then
+  log_time "Clean up gpfdist on client"
   sh ${PWD}/stop_gpfdist.sh
 elif [ "${RUN_MODEL}" == "local" ]; then
+  log_time "Clean up gpfdist on all segments"
   stop_gpfdist
 fi
+
 
 log_time "Step ${step} finished"
 printf "\n"
