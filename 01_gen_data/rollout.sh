@@ -135,7 +135,7 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
     # Process each data generation path
     for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
       # Process each subdirectory
-      for dir_num in $(seq 1 ${PARALLEL}); do
+      for dir_num in $(seq 1 ${TOTAL_PARALLEL}); do
         dir_path="${GEN_DATA_PATH}/${dir_num}"
         
         if [ -d "${dir_path}" ]; then
