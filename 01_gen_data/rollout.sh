@@ -189,8 +189,6 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
             # Remove original files if they exist
             rm -f ${dir_path}/nation.tbl ${dir_path}/region.tbl
           fi
-        else
-          log_time "Warning: Directory ${dir_path} does not exist"
         fi
       done
     done
