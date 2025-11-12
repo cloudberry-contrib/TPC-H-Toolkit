@@ -78,40 +78,68 @@ table_name="gen_data"
 if [ "${GEN_NEW_DATA}" == "true" ]; then
   if [ "${RUN_MODEL}" != "local" ]; then
     PARALLEL=${CLIENT_GEN_PARALLEL}
-    CHILD=1
-    GEN_DATA_PATH="${CLIENT_GEN_PATH}"
 
-    if [[ ! -d "${GEN_DATA_PATH}" && ! -L "${GEN_DATA_PATH}" ]]; then
-      log_time "mkdir ${GEN_DATA_PATH}"
-      mkdir ${GEN_DATA_PATH}
+    IFS=' ' read -ra GEN_PATHS <<< "${CLIENT_GEN_PATH}"
+    TOTAL_PATHS=${#GEN_PATHS[@]}
+    if [ ${TOTAL_PATHS} -eq 0 ]; then
+      log_time "ERROR: CLIENT_GEN_PATH is empty or not set"
+      exit 1
     fi
-    rm -rf ${GEN_DATA_PATH}/*
-    mkdir -p ${GEN_DATA_PATH}/logs
+    log_time "Number of data generation paths: ${TOTAL_PATHS}"
+    log_time "Parallel processes per path: ${PARALLEL}"
+    log_time "Total parallel processes: $((TOTAL_PATHS * PARALLEL))"      
 
-    while [ ${CHILD} -le ${PARALLEL} ]; do
-      mkdir -p ${GEN_DATA_PATH}/${CHILD}
-      cp ${PWD}/dbgen ${PWD}/dists.dss ${GEN_DATA_PATH}/${CHILD}/
-      cd ${GEN_DATA_PATH}/${CHILD}/
-      log_time "${GEN_DATA_PATH}/${CHILD}/dbgen -f -s ${GEN_DATA_SCALE} -C ${PARALLEL} -S ${CHILD} > ${GEN_DATA_PATH}/logs/tpch.generate_data.${CHILD}.log 2>&1 &"
-      ${GEN_DATA_PATH}/${CHILD}/dbgen -f -s ${GEN_DATA_SCALE} -C ${PARALLEL} -S ${CHILD} > ${GEN_DATA_PATH}/logs/tpch.generate_data.${CHILD}.log 2>&1 &
-      CHILD=$((CHILD + 1))
+    # Prepare each data generation path
+    for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
+      if [[ ! -d "${GEN_DATA_PATH}" && ! -L "${GEN_DATA_PATH}" ]]; then
+        log_time "mkdir ${GEN_DATA_PATH}"
+        mkdir -p ${GEN_DATA_PATH}
+      fi
+      log_time "rm -rf ${GEN_DATA_PATH}/*"
+      rm -rf ${GEN_DATA_PATH}/*
+      log_time "mkdir -p ${GEN_DATA_PATH}/logs"
+      mkdir -p ${GEN_DATA_PATH}/logs
     done
+
+    # Start data generation processes for each path
+    TOTAL_PARALLEL=$((TOTAL_PATHS * PARALLEL))
+    CHILD=1    
+    for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
+      # Save the starting CHILD number for current path
+      CURRENT_START_CHILD=${CHILD}
+      PATH_CHILD=1
+      while [ ${PATH_CHILD} -le ${PARALLEL} ]; do
+        mkdir -p ${GEN_DATA_PATH}/${CHILD}
+        cp ${PWD}/dbgen ${PWD}/dists.dss ${GEN_DATA_PATH}/${CHILD}/
+        cd ${GEN_DATA_PATH}/${CHILD}/
+        log_time "${GEN_DATA_PATH}/${CHILD}/dbgen -f -s ${GEN_DATA_SCALE} -C ${TOTAL_PARALLEL} -S ${CHILD} > ${GEN_DATA_PATH}/logs/tpch.generate_data.${CHILD}.log 2>&1 &"
+        ${GEN_DATA_PATH}/${CHILD}/dbgen -f -s ${GEN_DATA_SCALE} -C ${TOTAL_PARALLEL} -S ${CHILD} > ${GEN_DATA_PATH}/logs/tpch.generate_data.${CHILD}.log 2>&1 &
+        PATH_CHILD=$((PATH_CHILD + 1))
+        CHILD=$((CHILD + 1))
+      done
+    done
+
+    log_time "Waiting for data generation processes to complete..."
     wait
     
     #Adjust data files to remove duplicate data for region and nation
     CHILD=1
-    while [ ${CHILD} -le ${PARALLEL} ]; do  
-      if [ "$CHILD" -eq "1" ]; then
-        mv ${GEN_DATA_PATH}/${CHILD}/nation.tbl ${GEN_DATA_PATH}/${CHILD}/nation.tbl.${CHILD}
-        mv ${GEN_DATA_PATH}/${CHILD}/region.tbl ${GEN_DATA_PATH}/${CHILD}/region.tbl.${CHILD}
-      fi
-      if [ "$CHILD" -gt "1" ]; then
-        rm -f ${GEN_DATA_PATH}/${CHILD}/nation.tbl
-        rm -f ${GEN_DATA_PATH}/${CHILD}/region.tbl
-        touch ${GEN_DATA_PATH}/${CHILD}/nation.tbl.${CHILD}
-        touch ${GEN_DATA_PATH}/${CHILD}/region.tbl.${CHILD}
-      fi
-      CHILD=$((CHILD + 1))
+    for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
+      PATH_CHILD=1
+      while [ ${PATH_CHILD} -le ${PARALLEL} ]; do  
+        if [ "$CHILD" -eq "1" ]; then
+          mv ${GEN_DATA_PATH}/${CHILD}/nation.tbl ${GEN_DATA_PATH}/${CHILD}/nation.tbl.${CHILD}
+          mv ${GEN_DATA_PATH}/${CHILD}/region.tbl ${GEN_DATA_PATH}/${CHILD}/region.tbl.${CHILD}
+        fi
+        if [ "$CHILD" -gt "1" ]; then
+          rm -f ${GEN_DATA_PATH}/${CHILD}/nation.tbl
+          rm -f ${GEN_DATA_PATH}/${CHILD}/region.tbl
+          touch ${GEN_DATA_PATH}/${CHILD}/nation.tbl.${CHILD}
+          touch ${GEN_DATA_PATH}/${CHILD}/region.tbl.${CHILD}
+        fi
+        PATH_CHILD=$((PATH_CHILD + 1))
+        CHILD=$((CHILD + 1))
+      done
     done
   else
     kill_orphaned_data_gen
