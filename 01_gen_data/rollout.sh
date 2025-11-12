@@ -127,11 +127,11 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
     done
 
     # Start data generation processes for each path
-    TOTAL_PARALLEL=$((TOTAL_PATHS * PARALLEL))
+    TOTAL_PARALLEL=$((UNIQUE_PATH_COUNT * PARALLEL))
 
     if [ "$TOTAL_PARALLEL" -eq "1" ]; then
 	    PARALLEL="2"
-	    TOTAL_PARALLEL=$((TOTAL_PATHS * PARALLEL))
+	    TOTAL_PARALLEL=$((UNIQUE_PATH_COUNT * PARALLEL))
       log_time "Adjusted total parallel processes: ${TOTAL_PARALLEL}"
     fi
 
