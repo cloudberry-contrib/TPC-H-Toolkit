@@ -61,8 +61,8 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
       TABLE_STORAGE_OPTIONS=""
     fi
 
-    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -a -q -P pager=off -f ${i} -v ACCESS_METHOD=\"${TABLE_ACCESS_METHOD}\" -v STORAGE_OPTIONS=\"${TABLE_STORAGE_OPTIONS}\" -v DISTRIBUTED_BY=\"${DISTRIBUTED_BY}\" -v DB_EXT_SCHEMA_NAME=\"${DB_EXT_SCHEMA_NAME}\" -v DB_SCHEMA_NAME=\"${DB_SCHEMA_NAME}\""
-    psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -a -P pager=off -f ${i} -v ACCESS_METHOD="${TABLE_ACCESS_METHOD}" -v STORAGE_OPTIONS="${TABLE_STORAGE_OPTIONS}" -v DISTRIBUTED_BY="${DISTRIBUTED_BY}" -v DB_EXT_SCHEMA_NAME="${DB_EXT_SCHEMA_NAME}" -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}"
+    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -a -q -P pager=off -f ${PWD}/${i} -v ACCESS_METHOD=\"${TABLE_ACCESS_METHOD}\" -v STORAGE_OPTIONS=\"${TABLE_STORAGE_OPTIONS}\" -v DISTRIBUTED_BY=\"${DISTRIBUTED_BY}\" -v DB_EXT_SCHEMA_NAME=\"${DB_EXT_SCHEMA_NAME}\" -v DB_SCHEMA_NAME=\"${DB_SCHEMA_NAME}\""
+    psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -a -P pager=off -f ${PWD}/${i} -v ACCESS_METHOD="${TABLE_ACCESS_METHOD}" -v STORAGE_OPTIONS="${TABLE_STORAGE_OPTIONS}" -v DISTRIBUTED_BY="${DISTRIBUTED_BY}" -v DB_EXT_SCHEMA_NAME="${DB_EXT_SCHEMA_NAME}" -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}"
     print_log
   done
 
@@ -159,8 +159,8 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
           done
           LOCATION+="'"
         fi
-      log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -a -P pager=off -f ${i} -v LOCATION=\"${LOCATION}\""
-      psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -a -P pager=off -f ${i} -v LOCATION="${LOCATION}" -v DB_EXT_SCHEMA_NAME="${DB_EXT_SCHEMA_NAME}"
+      log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -a -P pager=off -f ${PWD}/${i} -v LOCATION=\"${LOCATION}\""
+      psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -a -P pager=off -f ${PWD}/${i} -v LOCATION="${LOCATION}" -v DB_EXT_SCHEMA_NAME="${DB_EXT_SCHEMA_NAME}"
       print_log
     done
   fi
