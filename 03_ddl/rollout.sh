@@ -131,7 +131,7 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
          else
            LOCATION+="', '"
          fi
-         LOCATION+="gpfdist://${EXT_HOST}:${PORT}/${table_name}_[0-9]*_[0-9]*.dat"
+         LOCATION+="gpfdist://${EXT_HOST}:${PORT}/[0-9]*/${table_name}.tbl*"
          let PORT=$PORT+1
          counter=$((counter + 1))
        done
@@ -154,7 +154,7 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
             else
               LOCATION+="', '"
             fi
-              LOCATION+="gpfdist://${EXT_HOST}:${PORT}/[0-9]*/${table_name}_[0-9]*_[0-9]*.dat"
+              LOCATION+="gpfdist://${EXT_HOST}:${PORT}/[0-9]*/${table_name}.tbl.[0-9]*"
               counter=$((counter + 1))
           done
           LOCATION+="'"
