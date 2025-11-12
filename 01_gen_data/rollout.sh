@@ -103,6 +103,12 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
 
     # Start data generation processes for each path
     TOTAL_PARALLEL=$((TOTAL_PATHS * PARALLEL))
+    
+    if [ "$TOTAL_PARALLEL" -eq "1" ]; then
+	    PARALLEL="2"
+	    TOTAL_PARALLEL=$((TOTAL_PATHS * PARALLEL))
+    fi
+
     CHILD=1    
     for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
       # Save the starting CHILD number for current path
