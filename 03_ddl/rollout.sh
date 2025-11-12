@@ -121,53 +121,22 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
      if [ "${RUN_MODEL}" == "remote" ]; then
       EXT_HOST=$(hostname -I | awk '{print $1}')
       # Split CLIENT_GEN_PATH into array of paths to support multiple directories
-      IFS=' ' read -ra GEN_PATHS <<< "${CLIENT_GEN_PATH}"
-      if [ ${#GEN_PATHS[@]} -eq 0 ]; then
-        log_time "ERROR: CLIENT_GEN_PATH is empty or not set"
-        exit 1
-      fi
-       
-       # Check for duplicate directories in CLIENT_GEN_PATH and remove them
-       log_time "Checking for duplicate directories in CLIENT_GEN_PATH..."
-       
-       # Create a temporary associative array to store unique paths
-       declare -A path_map
-       declare -a UNIQUE_GEN_PATHS
-       duplicates_found=false
-       
-       # Process each path to remove duplicates
-       for path in "${GEN_PATHS[@]}"; do
-         if [[ ! -v path_map["$path"] ]]; then
-           # Add path to unique paths array if not already present
-           path_map["$path"]=1
-           UNIQUE_GEN_PATHS+=("$path")
-         else
-           duplicates_found=true
-           log_time "Warning: Duplicate directory found and will be removed: $path"
-         fi
-       done
-       
-       # Replace GEN_PATHS with unique paths
-       GEN_PATHS=("${UNIQUE_GEN_PATHS[@]}")
-       
-       # Log if duplicates were removed
-       if $duplicates_found; then
-         log_time "Duplicate directories removed. Using unique paths only."
-       fi
-       
-       counter=0
-       PORT=18888
-       for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
-         if [ "${counter}" -eq "0" ]; then
-           LOCATION="'"
-         else
-           LOCATION+="', '"
-         fi
-         LOCATION+="gpfdist://${EXT_HOST}:${PORT}/[0-9]*/${table_name}.tbl*"
-         let PORT=$PORT+1
-         counter=$((counter + 1))
-       done
-       LOCATION+="'"
+
+      IFS=' ' read -ra GEN_PATHS <<< "${CLIENT_GEN_PATH}"       
+      
+      counter=0
+      PORT=18888
+      for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
+        if [ "${counter}" -eq "0" ]; then
+          LOCATION="'"
+        else
+          LOCATION+="', '"
+        fi
+        LOCATION+="gpfdist://${EXT_HOST}:${PORT}/[0-9]*/${table_name}.tbl*"
+        let PORT=$PORT+1
+        counter=$((counter + 1))
+      done
+        LOCATION+="'"
       else
         if [ "${DB_VERSION}" == "gpdb_4_3" ] || [ "${DB_VERSION}" == "gpdb_5" ]; then
           SQL_QUERY="select rank() over (partition by g.hostname order by p.fselocation), g.hostname from gp_segment_configuration g join pg_filespace_entry p on g.dbid = p.fsedbid join pg_tablespace t on t.spcfsoid where g.content >= 0 and g.role = '${GPFDIST_LOCATION}' and t.spcname = 'pg_default' order by g.hostname"

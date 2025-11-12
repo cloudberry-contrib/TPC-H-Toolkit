@@ -63,31 +63,6 @@ if [ "${RUN_MODEL}" == "remote" ]; then
   # Split CLIENT_GEN_PATH into array of paths to support multiple directories
   IFS=' ' read -ra GEN_PATHS <<< "${CLIENT_GEN_PATH}"
   
-  if [ ${#GEN_PATHS[@]} -eq 0 ]; then
-    log_time "ERROR: CLIENT_GEN_PATH is empty or not set"
-    exit 1
-  fi
-
-  # Check for duplicate directories in CLIENT_GEN_PATH and remove them
-  log_time "Checking for duplicate directories in CLIENT_GEN_PATH..."
-  declare -A path_map
-  declare -a UNIQUE_GEN_PATHS
-  duplicates_found=false
-  for path in "${GEN_PATHS[@]}"; do
-    if [[ ! -v path_map["$path"] ]]; then
-      # Add path to unique paths array if not already present
-      path_map["$path"]=1
-      UNIQUE_GEN_PATHS+=("$path")
-    else
-      duplicates_found=true
-      log_time "Warning: Duplicate directory found and will be removed: $path"
-    fi
-  done
-  if $duplicates_found; then
-    log_time "Duplicate directories removed. Using unique paths only."
-  fi
-  GEN_PATHS=("${UNIQUE_GEN_PATHS[@]}")
-
   CLOUDBERRY_BINARY_PATH=${GPHOME}
   env_file=""
 
@@ -215,34 +190,7 @@ for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "
     if [ "${RUN_MODEL}" == "cloud" ]; then
       # Split CLIENT_GEN_PATH into array of paths
       IFS=' ' read -ra GEN_PATHS <<< "${CLIENT_GEN_PATH}"
-      TOTAL_PATHS=${#GEN_PATHS[@]}
       
-      if [ ${TOTAL_PATHS} -eq 0 ]; then
-        log_time "ERROR: CLIENT_GEN_PATH is empty or not set"
-        exit 1
-      fi
-      
-      # Check for duplicate directories in CLIENT_GEN_PATH and remove them
-      log_time "Checking for duplicate directories in CLIENT_GEN_PATH..."
-      declare -A path_map
-      declare -a UNIQUE_GEN_PATHS
-      duplicates_found=false
-      for path in "${GEN_PATHS[@]}"; do
-        if [[ ! -v path_map["$path"] ]]; then
-          # Add path to unique paths array if not already present
-          path_map["$path"]=1
-          UNIQUE_GEN_PATHS+=("$path")
-        else
-          duplicates_found=true
-          log_time "Warning: Duplicate directory found and will be removed: $path"
-        fi
-      done
-      if $duplicates_found; then
-        log_time "Duplicate directories removed. Using unique paths only."
-      fi
-      GEN_PATHS=("${UNIQUE_GEN_PATHS[@]}")
-      TOTAL_PATHS=${#GEN_PATHS[@]}
-
       tuples=0
       for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
         log_time "Loading data from path: ${GEN_DATA_PATH}"
