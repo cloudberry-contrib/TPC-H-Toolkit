@@ -130,22 +130,36 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
     wait
     
     #Adjust data files to remove duplicate data for region and nation
-    CHILD=1
+    log_time "Processing region and nation tables to remove duplicates..."
+    
+    # Process each data generation path
     for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
-      PATH_CHILD=1
-      while [ ${PATH_CHILD} -le ${PARALLEL} ]; do  
-        if [ "$CHILD" -eq "1" ]; then
-          mv ${GEN_DATA_PATH}/${CHILD}/nation.tbl ${GEN_DATA_PATH}/${CHILD}/nation.tbl.${CHILD}
-          mv ${GEN_DATA_PATH}/${CHILD}/region.tbl ${GEN_DATA_PATH}/${CHILD}/region.tbl.${CHILD}
+      # Process each subdirectory
+      for dir_num in $(seq 1 ${PARALLEL}); do
+        dir_path="${GEN_DATA_PATH}/${dir_num}"
+        
+        if [ -d "${dir_path}" ]; then
+          if [ "${dir_num}" -eq "1" ]; then
+            # For directory named 1, rename files to preserve data
+            if [ -f "${dir_path}/nation.tbl" ]; then
+              log_time "Renaming ${dir_path}/nation.tbl to nation.tbl.${dir_num}"
+              mv ${dir_path}/nation.tbl ${dir_path}/nation.tbl.${dir_num}
+            fi
+            if [ -f "${dir_path}/region.tbl" ]; then
+              log_time "Renaming ${dir_path}/region.tbl to region.tbl.${dir_num}"
+              mv ${dir_path}/region.tbl ${dir_path}/region.tbl.${dir_num}
+            fi
+          else
+            # For other directories, clear data (delete original files and create empty ones)
+            log_time "Creating empty nation.tbl.${dir_num} and region.tbl.${dir_num} in ${dir_path}"
+            > ${dir_path}/nation.tbl.${dir_num}  # Create empty file
+            > ${dir_path}/region.tbl.${dir_num}  # Create empty file
+            # Remove original files if they exist
+            rm -f ${dir_path}/nation.tbl ${dir_path}/region.tbl
+          fi
+        else
+          log_time "Warning: Directory ${dir_path} does not exist"
         fi
-        if [ "$CHILD" -gt "1" ]; then
-          rm -f ${GEN_DATA_PATH}/${CHILD}/nation.tbl
-          rm -f ${GEN_DATA_PATH}/${CHILD}/region.tbl
-          touch ${GEN_DATA_PATH}/${CHILD}/nation.tbl.${CHILD}
-          touch ${GEN_DATA_PATH}/${CHILD}/region.tbl.${CHILD}
-        fi
-        PATH_CHILD=$((PATH_CHILD + 1))
-        CHILD=$((CHILD + 1))
       done
     done
   else
