@@ -85,9 +85,34 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
       log_time "ERROR: CLIENT_GEN_PATH is empty or not set"
       exit 1
     fi
-    log_time "Number of data generation paths: ${TOTAL_PATHS}"
+    
+    # Check for duplicate paths and remove them
+    log_time "Checking for duplicate paths in CLIENT_GEN_PATH..."
+    UNIQUE_PATHS=()
+    DUPLICATE_COUNT=0
+    
+    for path in "${GEN_PATHS[@]}"; do
+      # Check if path already exists in UNIQUE_PATHS
+      if [[ ! " ${UNIQUE_PATHS[*]} " =~ " ${path} " ]]; then
+        UNIQUE_PATHS+=("$path")
+      else
+        log_time "Warning: Duplicate path detected and will be removed: $path"
+        DUPLICATE_COUNT=$((DUPLICATE_COUNT + 1))
+      fi
+    done
+    
+    # Update GEN_PATHS with unique paths
+    GEN_PATHS=("${UNIQUE_PATHS[@]}")
+    UNIQUE_PATH_COUNT=${#GEN_PATHS[@]}
+    
+    if [ ${DUPLICATE_COUNT} -gt 0 ]; then
+      log_time "Removed ${DUPLICATE_COUNT} duplicate path(s). Unique paths count: ${UNIQUE_PATH_COUNT}"
+    else
+      log_time "No duplicate paths found."
+    fi
+    log_time "Number of data generation paths: ${UNIQUE_PATH_COUNT}"
     log_time "Parallel processes per path: ${PARALLEL}"
-    log_time "Total parallel processes: $((TOTAL_PATHS * PARALLEL))"      
+    log_time "Total parallel processes: $((UNIQUE_PATH_COUNT * PARALLEL))"      
 
     # Prepare each data generation path
     for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
