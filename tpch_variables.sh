@@ -12,9 +12,10 @@ export RUN_MODEL="local"
 export PSQL_OPTIONS=""
 
 ## The following variables only take effect when RUN_MODEL is set to "cloud".
-### Default path to store the generated benchmark data
-export CLIENT_GEN_PATH="/tmp/dsbenchmark"
-### How many parallel processes to run on the client to generate data
+### Default path to store the generated benchmark data, separated by space for multiple paths.
+export CLIENT_GEN_PATH="/tmp/hbenchmark"
+### How many parallel processes to run on each data path to generate data    
+### Default is 2, max is Number of CPU cores / number of $CLIENT_GEN_PATH.  
 export CLIENT_GEN_PARALLEL="2"
 
 ## The following variables only take effect when RUN_MODEL is set to "local".
@@ -53,10 +54,15 @@ export DROP_EXISTING_TABLES="true"
 export RUN_LOAD="true"
 ### How many parallel processes to load data, default is 2, max is 24.
 export LOAD_PARALLEL="2"
+### Truncate existing tables before loading data
+export TRUNCATE_TABLES="true"
+
+## step 05_analyze
 export RUN_ANALYZE="true"
+### How many parallel processes to analyze tables, default is 5, max is 24.
 export RUN_ANALYZE_PARALLEL="5"
 
-# step 05_sql
+# step 06_sql
 export RUN_SQL="true"
 ## Set to true to generate queries for the TPC-DS benchmark.
 export RUN_QGEN="true"
@@ -65,17 +71,17 @@ export QUERY_INTERVAL="0"
 #Set to 1 if you want to stop when error occurs
 export ON_ERROR_STOP="0"
 
-# step 06_single_user_reports
+# step 07_single_user_reports
 export RUN_SINGLE_USER_REPORTS="true"
 
-# step 07_multi_user
+# step 08_multi_user
 export RUN_MULTI_USER="false"
 export RUN_MULTI_USER_QGEN="true"
 
-# step 08_multi_user_reports
+# step 09_multi_user_reports
 export RUN_MULTI_USER_REPORTS="false"
 
-# step 09_score
+# step 10_score
 export RUN_SCORE="false"
 
 # Misc options
@@ -92,6 +98,7 @@ export ADMIN_USER=$(whoami)
 export ADMIN_HOME=$(eval echo ${HOME}/${ADMIN_USER})
 export MASTER_HOST=$(hostname -s)
 export DB_SCHEMA_NAME="$(echo "${DB_SCHEMA_NAME}" | tr '[:upper:]' '[:lower:]')"
+export DB_EXT_SCHEMA_NAME="ext_${DB_SCHEMA_NAME}"
 export BENCH_ROLE="$(echo "${BENCH_ROLE}" | tr '[:upper:]' '[:lower:]')"
 export DB_CURRENT_USER=$(psql ${PSQL_OPTIONS} -t -c "SELECT current_user;" 2>/dev/null | tr -d '[:space:]')
 
@@ -103,7 +110,7 @@ export DB_CURRENT_USER=$(psql ${PSQL_OPTIONS} -t -c "SELECT current_user;" 2>/de
 ## Set different storage options for each access method
 ## Set to use partition for the following tables:
 ## lineitem / orders
-# export TABLE_USE_PARTITION="true"
+export TABLE_USE_PARTITION="true"
 ## SET TABLE_STORAGE_OPTIONS with different options in GP/CBDB/Cloud "appendoptimized=true, orientation=column, compresstype=zstd, compresslevel=5, blocksize=1048576"
 export TABLE_STORAGE_OPTIONS="WITH (appendonly=true, orientation=column, compresstype=zstd, compresslevel=5)"
 

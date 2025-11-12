@@ -28,7 +28,7 @@ else
 fi
 
 # Clean up previous SQL files
-rm -f ${TPC_H_DIR}/05_sql/*.${BENCH_ROLE}.*.sql*
+rm -f ${TPC_H_DIR}/06_sql/*.${BENCH_ROLE}.*.sql*
 
 for i in $(ls $PWD/queries/*.sql |  xargs -n 1 basename); do
 	q=$(echo $i | awk -F '.' '{print $1}')
@@ -36,9 +36,9 @@ for i in $(ls $PWD/queries/*.sql |  xargs -n 1 basename); do
 	file_id="1""$id"
 	filename=${file_id}.${BENCH_ROLE}.${id}.sql
 
-	echo "echo \":EXPLAIN_ANALYZE\" > ${TPC_H_DIR}/05_sql/$filename"
+	echo "echo \":EXPLAIN_ANALYZE\" > ${TPC_H_DIR}/06_sql/$filename"
 
-	printf "set role ${BENCH_ROLE};\nset search_path=${DB_SCHEMA_NAME},public;\n" > ${TPC_H_DIR}/05_sql/${filename}
+	printf "set role ${BENCH_ROLE};\nset search_path=${DB_SCHEMA_NAME},public;\n" > ${TPC_H_DIR}/06_sql/${filename}
 
 	for o in $(cat ${TPC_H_DIR}/01_gen_data/optimizer.txt); do
         q2=$(echo ${o} | awk -F '|' '{print $1}')
@@ -46,24 +46,24 @@ for i in $(ls $PWD/queries/*.sql |  xargs -n 1 basename); do
           optimizer=$(echo ${o} | awk -F '|' '{print $2}')
         fi
     done
-	printf "set optimizer=${optimizer};\n" >> ${TPC_H_DIR}/05_sql/${filename}
-	printf "set statement_mem=\"${STATEMENT_MEM}\";\n" >> ${TPC_H_DIR}/05_sql/${filename}
+	printf "set optimizer=${optimizer};\n" >> ${TPC_H_DIR}/06_sql/${filename}
+	printf "set statement_mem=\"${STATEMENT_MEM}\";\n" >> ${TPC_H_DIR}/06_sql/${filename}
 
 	if [ "${ENABLE_VECTORIZATION}" = "on" ]; then
-	  printf "set vector.enable_vectorization=${ENABLE_VECTORIZATION};\n" >> ${TPC_H_DIR}/05_sql/${filename}
+	  printf "set vector.enable_vectorization=${ENABLE_VECTORIZATION};\n" >> ${TPC_H_DIR}/06_sql/${filename}
     fi
 	
-	printf ":EXPLAIN_ANALYZE\n" >> ${TPC_H_DIR}/05_sql/${filename}
+	printf ":EXPLAIN_ANALYZE\n" >> ${TPC_H_DIR}/06_sql/${filename}
 
 	# Check database if postgresql then comment out optimizer settings
 	if [ "${DB_VERSION}" == "postgresql" ]; then
-      sed -i 's/^set optimizer=.*/-- &/' "${TPC_H_DIR}/05_sql/${filename}"
-      sed -i 's/^set statement_mem=.*/-- &/' "${TPC_H_DIR}/05_sql/${filename}"
+      sed -i 's/^set optimizer=.*/-- &/' "${TPC_H_DIR}/06_sql/${filename}"
+      sed -i 's/^set statement_mem=.*/-- &/' "${TPC_H_DIR}/06_sql/${filename}"
     fi
 	
-	cd ${TPC_H_DIR}/05_sql/queries
-	log_time "./qgen -d -r ${RNGSEED} -s ${GEN_DATA_SCALE} $q >> ${TPC_H_DIR}/05_sql/$filename"
-	./qgen -d -r ${RNGSEED} -s ${GEN_DATA_SCALE} $q >> ${TPC_H_DIR}/05_sql/$filename
+	cd ${TPC_H_DIR}/06_sql/queries
+	log_time "./qgen -d -r ${RNGSEED} -s ${GEN_DATA_SCALE} $q >> ${TPC_H_DIR}/06_sql/$filename"
+	./qgen -d -r ${RNGSEED} -s ${GEN_DATA_SCALE} $q >> ${TPC_H_DIR}/06_sql/$filename
 	cd ..
 done
 

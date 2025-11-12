@@ -30,7 +30,9 @@ done
 
 psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -t -A -c "select 'analyze ' || n.nspname || '.' || c.relname || ';' from pg_class c join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'tpch_testing'" | psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -t -A -e
 
-psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -P pager=off -f ${PWD}/detailed_report.sql
+# Generate detailed report
+log_time "Generating detailed report"
+psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -P pager=off -f "${PWD}/detailed_report.sql"
 echo ""
 
 CONCURRENT_QUERY_TIME=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -A -c "select round(sum(extract('epoch' from duration))) from tpch_testing.sql")
@@ -39,6 +41,10 @@ THROUGHPUT_ELAPSED_TIME=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -A -c "s
 S_Q=${MULTI_USER_COUNT}
 SF=${GEN_DATA_SCALE}
 
+SUCCESS_QUERY=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -A -c "select count(*) from tpch_testing.sql where tuples >= 0")
+FAILD_QUERY=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -A -c "select count(*) from tpch_testing.sql where tuples < 0 and id > 1")
+
+
 echo "********************************************************************************"
 echo "Summary"
 echo "********************************************************************************"
@@ -46,7 +52,7 @@ echo ""
 printf "Number of Streams (Sq)\t\t%d\n" "${S_Q}"
 printf "Scale Factor (SF)\t\t%d\n" "${SF}"
 printf "Sum of Elapse Time for all Concurrent Queries (seconds)\t%d\n" "${CONCURRENT_QUERY_TIME}"
-printf "Throughput Test Elapsed Time (seconds)\t%d\n" "${THROUGHPUT_ELAPSED_TIME}"
+printf "Throughput Test Elapsed Time (seconds)\t%d\tFor %d success queries and %d failed queries\n" "${THROUGHPUT_ELAPSED_TIME}" "${SUCCESS_QUERY}" "${FAILD_QUERY}"
 printf "\n"
 echo "********************************************************************************"
 

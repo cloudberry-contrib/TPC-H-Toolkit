@@ -46,13 +46,14 @@ function get_psql_count()
 }
 
 function get_running_jobs_count() {
-  job_count=$(ps -fu "${ADMIN_USER}" |grep -v grep |grep "07_multi_user/test.sh"|wc -l || true)
+  job_count=$(ps -fu "${ADMIN_USER}" |grep -v grep |grep "08_multi_user/test.sh"|wc -l || true)
   echo "${job_count}"
 }
 
 function get_file_count()
 {
-	file_count=$(ls ${TPC_H_DIR}/log/end_testing* 2> /dev/null | wc -l)
+  file_count=$(find ${TPC_DS_DIR}/log -maxdepth 1 -name 'end_testing*' | grep -c . || true)
+  echo "${file_count}"
 }
 
 
@@ -117,11 +118,9 @@ done
 echo "Now executing queries. This may take a while."
 seconds=0
 echo -n "Multi-user query duration: "
-tput sc
 running_jobs_count=$(get_running_jobs_count)
 while [ ${running_jobs_count} -gt 0 ]; do
-  tput rc
-  echo -n "${seconds} second(s)"
+  printf "\rMulti-user query duration: ${seconds} second(s)"
   sleep 15
   running_jobs_count=$(get_running_jobs_count)
   seconds=$((seconds + 15))
@@ -131,7 +130,7 @@ echo ""
 echo "done."
 echo ""·
 
-get_file_count
+file_count=$(get_file_count)
 
 if [ "${file_count}" -ne "${MULTI_USER_COUNT}" ]; then
 	echo "The number of successfully completed sessions is less than expected!"

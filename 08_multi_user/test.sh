@@ -12,6 +12,10 @@ init_log ${step}
 
 sql_dir=${PWD}/${session_id}
 
+if [ "${ON_ERROR_STOP}" == 0 ]; then
+  set +e
+fi
+
 function generate_queries()
 {
 	#going from 1 base to 0 base
@@ -72,27 +76,30 @@ fi
 
 tuples="0"
 for i in ${sql_dir}/*.sql; do
-	start_log
-	id=${i}
-	schema_name=${session_id}
-	table_name=$(basename ${i} | awk -F '.' '{print $3}')
-	echo $table_name
-	#table_name= $(basename ${i} | awk -F '.' '{print $3}')
+  start_log
+  id=${i}
+  schema_name=${session_id}
+  table_name=$(basename ${i} | awk -F '.' '{print $3}')
 
-	if [ "${EXPLAIN_ANALYZE}" == "false" -o "${table_name}" == "15" ]; then
-		log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -t -P pager=off -v EXPLAIN_ANALYZE="" -f ${i} | wc -l"
-		tuples=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -t -P pager=off -v EXPLAIN_ANALYZE="" -f ${i} | wc -l; exit ${PIPESTATUS[0]})
-		tuples=$((tuples - 1))
-	else
-		myfilename=$(basename ${i})
-		mylogfile="${TPC_H_DIR}/log/${session_id}.${myfilename}.multi.explain_analyze.log"
-		log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P pager=off -v EXPLAIN_ANALYZE=\"EXPLAIN ANALYZE\" -f ${i}"
-		psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P pager=off -v EXPLAIN_ANALYZE="EXPLAIN ANALYZE" -f ${i} > ${mylogfile}
-		tuples="0"
-	fi
-		
-	#remove the extra line that \timing adds
-	print_log ${tuples}
+  if [ "${EXPLAIN_ANALYZE}" == "false" -o "${table_name}" == "15" ]; then
+    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -t -P pager=off -v EXPLAIN_ANALYZE="" -f ${i} | wc -l"
+	tuples=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -t -P pager=off -v EXPLAIN_ANALYZE="" -f ${i} | wc -l; exit ${PIPESTATUS[0]})
+    if [ $? != 0 ]; then
+        tuples="-1"
+    fi
+  else
+    myfilename=$(basename ${i})
+	mylogfile="${TPC_H_DIR}/log/${session_id}.${myfilename}.multi.explain_analyze.log"
+	log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P pager=off -v EXPLAIN_ANALYZE=\"EXPLAIN ANALYZE\" -f ${i}"
+	psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P pager=off -v EXPLAIN_ANALYZE="EXPLAIN ANALYZE" -f ${i} > ${mylogfile}
+    if [ $? != 0 ]; then
+        tuples="-1"
+      else
+        tuples="0"
+    fi
+  fi
+  #remove the extra line that \timing adds
+  print_log ${tuples}
 done
 
 end_step ${step}

@@ -20,7 +20,7 @@ function create_directories()
 create_directories
 
 echo "############################################################################"
-echo "TPC-H Script for Greenplum Database."
+echo "TPC-H Script for PostgreSQL / Cloudberry Database."
 echo "############################################################################"
 echo "All parameter settings:"
 echo "############################################################################"
