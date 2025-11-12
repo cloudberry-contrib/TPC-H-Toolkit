@@ -86,33 +86,40 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
       exit 1
     fi
     
-    # Check for duplicate paths and remove them
-    log_time "Checking for duplicate paths in CLIENT_GEN_PATH..."
-    UNIQUE_PATHS=()
-    DUPLICATE_COUNT=0
+    # Check for duplicate directories in CLIENT_GEN_PATH
+    log_time "Checking for duplicate directories in CLIENT_GEN_PATH..."
     
+    # Create a temporary array to store unique paths
+    declare -A path_map
+    duplicates_found=false
+    duplicate_paths=""
+    
+    # Process each path to find duplicates
     for path in "${GEN_PATHS[@]}"; do
-      # Check if path already exists in UNIQUE_PATHS
-      if [[ ! " ${UNIQUE_PATHS[*]} " =~ " ${path} " ]]; then
-        UNIQUE_PATHS+=("$path")
+      if [[ -v path_map["$path"] ]]; then
+        # Found a duplicate
+        duplicates_found=true
+        if [[ -z "$duplicate_paths" ]]; then
+          duplicate_paths="$path"
+        else
+          duplicate_paths="$duplicate_paths, $path"
+        fi
       else
-        log_time "Warning: Duplicate path detected and will be removed: $path"
-        DUPLICATE_COUNT=$((DUPLICATE_COUNT + 1))
+        # Add path to map
+        path_map["$path"]=1
       fi
     done
     
-    # Update GEN_PATHS with unique paths
-    GEN_PATHS=("${UNIQUE_PATHS[@]}")
-    UNIQUE_PATH_COUNT=${#GEN_PATHS[@]}
-    
-    if [ ${DUPLICATE_COUNT} -gt 0 ]; then
-      log_time "Removed ${DUPLICATE_COUNT} duplicate path(s). Unique paths count: ${UNIQUE_PATH_COUNT}"
-    else
-      log_time "No duplicate paths found."
+    # If duplicates were found, exit with error
+    if $duplicates_found; then
+      log_time "ERROR: Duplicate directories found in CLIENT_GEN_PATH: $duplicate_paths"
+      log_time "Please modify your configuration parameter to remove duplicate directories."
+      exit 1
     fi
-    log_time "Number of data generation paths: ${UNIQUE_PATH_COUNT}"
+
+    log_time "Number of data generation paths: ${TOTAL_PATHS}"
     log_time "Parallel processes per path: ${PARALLEL}"
-    log_time "Total parallel processes: $((UNIQUE_PATH_COUNT * PARALLEL))"      
+    log_time "Total parallel processes: $((TOTAL_PATHS * PARALLEL))"      
 
     # Prepare each data generation path
     for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
@@ -127,11 +134,11 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
     done
 
     # Start data generation processes for each path
-    TOTAL_PARALLEL=$((UNIQUE_PATH_COUNT * PARALLEL))
+    TOTAL_PARALLEL=$((TOTAL_PATHS * PARALLEL))
 
     if [ "$TOTAL_PARALLEL" -eq "1" ]; then
 	    PARALLEL="2"
-	    TOTAL_PARALLEL=$((UNIQUE_PATH_COUNT * PARALLEL))
+	    TOTAL_PARALLEL=$((TOTAL_PATHS * PARALLEL))
       log_time "Adjusted total parallel processes: ${TOTAL_PARALLEL}"
     fi
 
