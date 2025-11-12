@@ -103,10 +103,11 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
 
     # Start data generation processes for each path
     TOTAL_PARALLEL=$((TOTAL_PATHS * PARALLEL))
-    
+
     if [ "$TOTAL_PARALLEL" -eq "1" ]; then
 	    PARALLEL="2"
 	    TOTAL_PARALLEL=$((TOTAL_PATHS * PARALLEL))
+      log_time "Adjusted total parallel processes: ${TOTAL_PARALLEL}"
     fi
 
     CHILD=1    
