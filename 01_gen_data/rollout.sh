@@ -80,42 +80,33 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
     PARALLEL=${CLIENT_GEN_PARALLEL}
 
     IFS=' ' read -ra GEN_PATHS <<< "${CLIENT_GEN_PATH}"
+
     TOTAL_PATHS=${#GEN_PATHS[@]}
     if [ ${TOTAL_PATHS} -eq 0 ]; then
       log_time "ERROR: CLIENT_GEN_PATH is empty or not set"
       exit 1
     fi
-    
-    # Check for duplicate directories in CLIENT_GEN_PATH
+    # Check for duplicate directories in CLIENT_GEN_PATH and remove them
     log_time "Checking for duplicate directories in CLIENT_GEN_PATH..."
-    
-    # Create a temporary array to store unique paths
     declare -A path_map
+    declare -a UNIQUE_GEN_PATHS
     duplicates_found=false
-    duplicate_paths=""
-    
-    # Process each path to find duplicates
     for path in "${GEN_PATHS[@]}"; do
-      if [[ -v path_map["$path"] ]]; then
-        # Found a duplicate
-        duplicates_found=true
-        if [[ -z "$duplicate_paths" ]]; then
-          duplicate_paths="$path"
-        else
-          duplicate_paths="$duplicate_paths, $path"
-        fi
-      else
-        # Add path to map
+      if [[ ! -v path_map["$path"] ]]; then
+        # Add path to unique paths array if not already present
         path_map["$path"]=1
+        UNIQUE_GEN_PATHS+=("$path")
+      else
+        duplicates_found=true
+        log_time "Warning: Duplicate directory found and will be removed: $path"
       fi
     done
-    
-    # If duplicates were found, exit with error
     if $duplicates_found; then
-      log_time "ERROR: Duplicate directories found in CLIENT_GEN_PATH: $duplicate_paths"
-      log_time "Please modify your configuration parameter to remove duplicate directories."
-      exit 1
+      log_time "Duplicate directories removed. Using unique paths only."
     fi
+    GEN_PATHS=("\${UNIQUE_GEN_PATHS[@]}")
+
+    TOTAL_PATHS=${#GEN_PATHS[@]}
 
     log_time "Number of data generation paths: ${TOTAL_PATHS}"
     log_time "Parallel processes per path: ${PARALLEL}"
