@@ -86,7 +86,7 @@ if [ "${RUN_MODEL}" == "remote" ]; then
   if $duplicates_found; then
     log_time "Duplicate directories removed. Using unique paths only."
   fi
-  GEN_PATHS=("\${UNIQUE_GEN_PATHS[@]}")
+  GEN_PATHS=("${UNIQUE_GEN_PATHS[@]}")
 
   CLOUDBERRY_BINARY_PATH=${GPHOME}
   env_file=""
@@ -240,7 +240,7 @@ for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "
       if $duplicates_found; then
         log_time "Duplicate directories removed. Using unique paths only."
       fi
-      GEN_PATHS=("\${UNIQUE_GEN_PATHS[@]}")
+      GEN_PATHS=("${UNIQUE_GEN_PATHS[@]}")
       TOTAL_PATHS=${#GEN_PATHS[@]}
 
       tuples=0

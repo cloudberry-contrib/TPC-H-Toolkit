@@ -148,7 +148,7 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
        done
        
        # Replace GEN_PATHS with unique paths
-       GEN_PATHS=("\${UNIQUE_GEN_PATHS[@]}")
+       GEN_PATHS=("${UNIQUE_GEN_PATHS[@]}")
        
        # Log if duplicates were removed
        if $duplicates_found; then

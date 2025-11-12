@@ -104,7 +104,7 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
     if $duplicates_found; then
       log_time "Duplicate directories removed. Using unique paths only."
     fi
-    GEN_PATHS=("\${UNIQUE_GEN_PATHS[@]}")
+    GEN_PATHS=("${UNIQUE_GEN_PATHS[@]}")
 
     TOTAL_PATHS=${#GEN_PATHS[@]}
 
