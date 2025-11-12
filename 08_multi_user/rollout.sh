@@ -52,7 +52,7 @@ function get_running_jobs_count() {
 
 function get_file_count()
 {
-  file_count=$(find ${TPC_DS_DIR}/log -maxdepth 1 -name 'end_testing*' | grep -c . || true)
+  file_count=$(find ${TPC_H_DIR}/log -maxdepth 1 -name 'end_testing*' | grep -c . || true)
   echo "${file_count}"
 }
 
