@@ -160,8 +160,8 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
           done
           LOCATION+="'"
         fi
-      log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -a -P pager=off -f ${PWD}/${i} -v LOCATION=\"${LOCATION}\""
-      psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -a -P pager=off -f ${PWD}/${i} -v LOCATION="${LOCATION}" -v DB_EXT_SCHEMA_NAME="${DB_EXT_SCHEMA_NAME}"
+      log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -a -P pager=off -f ${PWD}/${i} -v LOCATION=\"${LOCATION}\" -v DB_EXT_SCHEMA_NAME=\"${DB_EXT_SCHEMA_NAME}\" -v DB_SCHEMA_NAME=\"${DB_SCHEMA_NAME}\""
+      psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -a -P pager=off -f ${PWD}/${i} -v LOCATION="${LOCATION}" -v DB_EXT_SCHEMA_NAME="${DB_EXT_SCHEMA_NAME}" -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}" 
       print_log
     done
   fi
