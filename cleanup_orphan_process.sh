@@ -1,8 +1,28 @@
 #!/bin/bash
 set -e
 
-# Get the basename of the current working directory as the keyword
-keyword=$(basename "${PWD}")
+# Display help message if requested
+if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+  echo "Usage: $0 [keyword]"
+  echo ""
+  echo "Terminates processes containing the specified keyword."
+  echo "If no keyword is provided, uses the current directory name."
+  echo ""
+  echo "Options:"
+  echo "  -h, --help    Show this help message and exit"
+  exit 0
+fi
+
+# Use provided keyword if available, otherwise use current directory basename
+if [ $# -gt 0 ]; then
+  keyword="$1"
+  echo "Using provided keyword: '${keyword}'"
+else
+  # Get the basename of the current working directory as the default keyword
+  keyword=$(basename "${PWD}")
+  echo "Using current directory name as keyword: '${keyword}'"
+fi
+
 echo "Cleaning up processes containing keyword '${keyword}'..."
 
 # Find processes containing the keyword, excluding grep and current script
