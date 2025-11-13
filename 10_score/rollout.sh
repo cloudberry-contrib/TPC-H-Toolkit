@@ -10,8 +10,8 @@ printf "\n"
 
 init_log ${step}
 
-report_schema="${DB_SCHEMA_NAME}_report"
-multi_user_report_schema="${DB_SCHEMA_NAME}_multi_user_report"
+report_schema="${DB_SCHEMA_NAME}_reports"
+multi_user_report_schema="${DB_SCHEMA_NAME}_multi_user_reports"
 
 LOAD_TIME=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -A -c "SELECT ROUND(MAX(end_epoch_seconds) - MIN(start_epoch_seconds)) FROM ${report_schema}.load WHERE tuples > 0")
 ANALYZE_TIME=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -A -c "select round(sum(extract('epoch' from duration))) from ${report_schema}.analyze where tuples = -1")
