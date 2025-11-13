@@ -11,6 +11,12 @@ function create_directories()
   if [ ! -d ${TPC_H_DIR}/log ]; then
     echo "Creating log directory"
     mkdir ${TPC_H_DIR}/log
+  else
+    # Backup the log folder before running the benchmark
+    LOG_FOLDER=${TPC_H_DIR}/log
+    LOG_FOLDER_BACKUP=${LOG_FOLDER}_backup_$(date +%Y%m%d_%H%M%S)
+    cp -r ${LOG_FOLDER} ${LOG_FOLDER_BACKUP}
+    log_time "Log folder backed up to ${LOG_FOLDER_BACKUP}"
   fi
 }
 
@@ -20,7 +26,7 @@ function create_directories()
 create_directories
 
 echo "############################################################################"
-echo "TPC-H Script for Greenplum Database."
+echo "TPC-H Script for PostgreSQL / Cloudberry Database."
 echo "############################################################################"
 echo "All parameter settings:"
 echo "############################################################################"

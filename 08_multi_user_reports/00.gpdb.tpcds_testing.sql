@@ -1,2 +1,0 @@
-DROP SCHEMA IF EXISTS tpch_testing CASCADE;
-CREATE SCHEMA tpch_testing;

@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -e
+set -e
 
 PWD=$(get_pwd ${BASH_SOURCE[0]})
 
@@ -77,41 +77,85 @@ table_name="gen_data"
 
 if [ "${GEN_NEW_DATA}" == "true" ]; then
   if [ "${RUN_MODEL}" != "local" ]; then
+    
     PARALLEL=${CLIENT_GEN_PARALLEL}
-    CHILD=1
-    GEN_DATA_PATH="${CLIENT_GEN_PATH}"
+    IFS=' ' read -ra GEN_PATHS <<< "${CLIENT_GEN_PATH}"
+    TOTAL_PATHS=${#GEN_PATHS[@]}
 
-    if [[ ! -d "${GEN_DATA_PATH}" && ! -L "${GEN_DATA_PATH}" ]]; then
-      log_time "mkdir ${GEN_DATA_PATH}"
-      mkdir ${GEN_DATA_PATH}
-    fi
-    rm -rf ${GEN_DATA_PATH}/*
-    mkdir -p ${GEN_DATA_PATH}/logs
+    log_time "Number of data generation paths: ${TOTAL_PATHS}"
+    log_time "Parallel processes per path: ${PARALLEL}"
+    log_time "Total parallel processes: $((TOTAL_PATHS * PARALLEL))"      
 
-    while [ ${CHILD} -le ${PARALLEL} ]; do
-      mkdir -p ${GEN_DATA_PATH}/${CHILD}
-      cp ${PWD}/dbgen ${PWD}/dists.dss ${GEN_DATA_PATH}/${CHILD}/
-      cd ${GEN_DATA_PATH}/${CHILD}/
-      log_time "${GEN_DATA_PATH}/${CHILD}/dbgen -f -s ${GEN_DATA_SCALE} -C ${PARALLEL} -S ${CHILD} > ${GEN_DATA_PATH}/logs/tpch.generate_data.${CHILD}.log 2>&1 &"
-      ${GEN_DATA_PATH}/${CHILD}/dbgen -f -s ${GEN_DATA_SCALE} -C ${PARALLEL} -S ${CHILD} > ${GEN_DATA_PATH}/logs/tpch.generate_data.${CHILD}.log 2>&1 &
-      CHILD=$((CHILD + 1))
+    # Prepare each data generation path
+    for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
+      if [[ ! -d "${GEN_DATA_PATH}" && ! -L "${GEN_DATA_PATH}" ]]; then
+        log_time "mkdir ${GEN_DATA_PATH}"
+        mkdir -p ${GEN_DATA_PATH}
+      fi
+      log_time "rm -rf ${GEN_DATA_PATH}/*"
+      rm -rf ${GEN_DATA_PATH}/*
+      log_time "mkdir -p ${GEN_DATA_PATH}/logs"
+      mkdir -p ${GEN_DATA_PATH}/logs
     done
+
+    # Start data generation processes for each path
+    TOTAL_PARALLEL=$((TOTAL_PATHS * PARALLEL))
+
+    if [ "$TOTAL_PARALLEL" -eq "1" ]; then
+	    PARALLEL="2"
+	    TOTAL_PARALLEL=$((TOTAL_PATHS * PARALLEL))
+      log_time "Adjusted total parallel processes: ${TOTAL_PARALLEL}"
+    fi
+
+    CHILD=1    
+    for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
+      # Save the starting CHILD number for current path
+      CURRENT_START_CHILD=${CHILD}
+      PATH_CHILD=1
+      while [ ${PATH_CHILD} -le ${PARALLEL} ]; do
+        mkdir -p ${GEN_DATA_PATH}/${CHILD}
+        cp ${PWD}/dbgen ${PWD}/dists.dss ${GEN_DATA_PATH}/${CHILD}/
+        cd ${GEN_DATA_PATH}/${CHILD}/
+        log_time "${GEN_DATA_PATH}/${CHILD}/dbgen -f -s ${GEN_DATA_SCALE} -C ${TOTAL_PARALLEL} -S ${CHILD} > ${GEN_DATA_PATH}/logs/tpch.generate_data.${CHILD}.log 2>&1 &"
+        ${GEN_DATA_PATH}/${CHILD}/dbgen -f -s ${GEN_DATA_SCALE} -C ${TOTAL_PARALLEL} -S ${CHILD} > ${GEN_DATA_PATH}/logs/tpch.generate_data.${CHILD}.log 2>&1 &
+        PATH_CHILD=$((PATH_CHILD + 1))
+        CHILD=$((CHILD + 1))
+      done
+    done
+
+    log_time "Waiting for data generation processes to complete..."
     wait
     
     #Adjust data files to remove duplicate data for region and nation
-    CHILD=1
-    while [ ${CHILD} -le ${PARALLEL} ]; do  
-      if [ "$CHILD" -eq "1" ]; then
-        mv ${GEN_DATA_PATH}/${CHILD}/nation.tbl ${GEN_DATA_PATH}/${CHILD}/nation.tbl.${CHILD}
-        mv ${GEN_DATA_PATH}/${CHILD}/region.tbl ${GEN_DATA_PATH}/${CHILD}/region.tbl.${CHILD}
-      fi
-      if [ "$CHILD" -gt "1" ]; then
-        rm -f ${GEN_DATA_PATH}/${CHILD}/nation.tbl
-        rm -f ${GEN_DATA_PATH}/${CHILD}/region.tbl
-        touch ${GEN_DATA_PATH}/${CHILD}/nation.tbl.${CHILD}
-        touch ${GEN_DATA_PATH}/${CHILD}/region.tbl.${CHILD}
-      fi
-      CHILD=$((CHILD + 1))
+    log_time "Processing region and nation tables to remove duplicates..."
+    
+    # Process each data generation path
+    for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
+      # Process each subdirectory
+      for dir_num in $(seq 1 ${TOTAL_PARALLEL}); do
+        dir_path="${GEN_DATA_PATH}/${dir_num}"
+        
+        if [ -d "${dir_path}" ]; then
+          if [ "${dir_num}" -eq "1" ]; then
+            # For directory named 1, rename files to preserve data
+            if [ -f "${dir_path}/nation.tbl" ]; then
+              log_time "Renaming ${dir_path}/nation.tbl to nation.tbl.${dir_num}"
+              mv ${dir_path}/nation.tbl ${dir_path}/nation.tbl.${dir_num}
+            fi
+            if [ -f "${dir_path}/region.tbl" ]; then
+              log_time "Renaming ${dir_path}/region.tbl to region.tbl.${dir_num}"
+              mv ${dir_path}/region.tbl ${dir_path}/region.tbl.${dir_num}
+            fi
+          else
+            # For other directories, clear data (delete original files and create empty ones)
+            log_time "Creating empty nation.tbl.${dir_num} and region.tbl.${dir_num} in ${dir_path}"
+            > ${dir_path}/nation.tbl.${dir_num}  # Create empty file
+            > ${dir_path}/region.tbl.${dir_num}  # Create empty file
+            # Remove original files if they exist
+            rm -f ${dir_path}/nation.tbl ${dir_path}/region.tbl
+          fi
+        fi
+      done
     done
   else
     kill_orphaned_data_gen

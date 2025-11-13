@@ -10,19 +10,7 @@ printf "\n"
 
 init_log ${step}
 
-ADMIN_HOME=$(eval echo ~$ADMIN_USER)
-
 filter="gpdb"
-
-env_file=""
-
-if [ "$DB_VERSION" = "synxdb_4" ]; then
-    env_file="${GPHOME}/cluster_env.sh"
-elif [ "$DB_VERSION" = "synxdb_2" ]; then
-    env_file="${GPHOME}/synxdb_path.sh"
-else
-    env_file="${GPHOME}/greenplum_path.sh"
-fi
 
 function copy_script()
 {
@@ -47,8 +35,7 @@ function start_gpfdist()
 {
   stop_gpfdist
   sleep 1
-  get_gpfdist_port
-
+  
   if [ "${VERSION}" == "gpdb_4_3" ] || [ "${VERSION}" == "gpdb_5" ]; then
     SQL_QUERY="select rank() over (partition by g.hostname order by p.fselocation), g.hostname, p.fselocation as path from gp_segment_configuration g join pg_filespace_entry p on g.dbid = p.fsedbid join pg_tablespace t on t.spcfsoid = p.fsefsoid where g.content >= 0 and g.role = '${GPFDIST_LOCATION}' and t.spcname = 'pg_default' order by g.hostname"
   else
@@ -69,10 +56,101 @@ function start_gpfdist()
   wait
 }
 
-if [ "${RUN_MODEL}" == "local" ]; then
+
+if [ "${RUN_MODEL}" == "remote" ]; then
+  sh ${PWD}/stop_gpfdist.sh
+  # Split CLIENT_GEN_PATH into array of paths to support multiple directories
+  IFS=' ' read -ra GEN_PATHS <<< "${CLIENT_GEN_PATH}"
+  
+  CLOUDBERRY_BINARY_PATH=${GPHOME}
+  env_file=""
+
+  if [ "$DB_VERSION" = "synxdb_4" ]; then
+    env_file="${CLOUDBERRY_BINARY_PATH}/cloudberry-env.sh"
+  elif [ "$DB_VERSION" = "synxdb_2" ]; then
+    env_file="${CLOUDBERRY_BINARY_PATH}/synxdb_path.sh"
+  else
+    env_file="${CLOUDBERRY_BINARY_PATH}/greenplum_path.sh"
+  fi
+
+  if [ ! -f "${env_file}" ]; then
+    log_time "Environment file ${env_file} not found, searching for alternative configuration files..."
+    
+    config_files=("greenplum_path.sh" "cluster_env.sh" "synxdb_path.sh" "cloudberry-env.sh")
+    found_config=""
+    
+    for config in "${config_files[@]}"; do
+        if [ -f "${CLOUDBERRY_BINARY_PATH}/${config}" ]; then
+            found_config="${config}"
+            log_time "Found configuration file: ${CLOUDBERRY_BINARY_PATH}/${config}"
+            break
+        fi
+    done
+    
+    if [ -n "${found_config}" ]; then
+        env_file="${CLOUDBERRY_BINARY_PATH}/${found_config}"
+        log_time "Updated environment file to: ${env_file}"
+    else
+        log_time "ERROR: No configuration files found in ${CLOUDBERRY_BINARY_PATH}"
+        log_time "Searched for: ${config_files[*]}"
+        exit 1
+    fi
+  else
+    log_time "Using environment file: ${env_file}"
+  fi
+  
+  # Start gpfdist for each data path with different ports
+  PORT=${GPFDIST_PORT}
+  for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
+    log_time "Starting gpfdist on port ${PORT} for path: ${GEN_DATA_PATH}"
+    sh ${PWD}/start_gpfdist.sh $PORT "${GEN_DATA_PATH}" ${env_file}
+    let PORT=$PORT+1
+  done
+  
+  # Set GEN_DATA_PATH to the first path for backward compatibility
+  GEN_DATA_PATH=${GEN_PATHS[0]}
+elif [ "${RUN_MODEL}" == "local" ]; then
+  CLOUDBERRY_BINARY_PATH=${GPHOME}
+  env_file=""
+
+  if [ "$DB_VERSION" = "synxdb_4" ]; then
+    env_file="${CLOUDBERRY_BINARY_PATH}/cloudberry-env.sh"
+  elif [ "$DB_VERSION" = "synxdb_2" ]; then
+    env_file="${CLOUDBERRY_BINARY_PATH}/synxdb_path.sh"
+  else
+    env_file="${CLOUDBERRY_BINARY_PATH}/greenplum_path.sh"
+  fi
+
+  if [ ! -f "${env_file}" ]; then
+    log_time "Environment file ${env_file} not found, searching for alternative configuration files..."
+    
+    config_files=("greenplum_path.sh" "cluster_env.sh" "synxdb_path.sh" "cloudberry-env.sh")
+    found_config=""
+    
+    for config in "${config_files[@]}"; do
+        if [ -f "${CLOUDBERRY_BINARY_PATH}/${config}" ]; then
+            found_config="${config}"
+            log_time "Found configuration file: ${CLOUDBERRY_BINARY_PATH}/${config}"
+            break
+        fi
+    done
+    
+    if [ -n "${found_config}" ]; then
+        env_file="${CLOUDBERRY_BINARY_PATH}/${found_config}"
+        log_time "Updated environment file to: ${env_file}"
+    else
+        log_time "ERROR: No configuration files found in ${CLOUDBERRY_BINARY_PATH}"
+        log_time "Searched for: ${config_files[*]}"
+        exit 1
+    fi
+  else
+    log_time "Using environment file: ${env_file}"
+  fi
+  
   copy_script
   start_gpfdist
 fi
+
 # Wait for all gpfidist to start
 # sleep 10
 
@@ -90,34 +168,47 @@ done
 # Use find to get just filenames, then process each file in numeric order
 
 schema_name=${DB_SCHEMA_NAME}
-ext_schema_name="ext_${DB_SCHEMA_NAME}"
 
 for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "%f\n" | sort -n); do
 # Acquire a token to control concurrency
   read -u 5
   {
     start_log
-    id=$(echo ${i} | awk -F '.' '{print $1}')
-    table_name=$(echo ${i} | awk -F '.' '{print $3}')
-    
+    id=$(echo "${i}" | awk -F '.' '{print $1}')
+    export id
+    schema_name=${DB_SCHEMA_NAME}
+    export schema_name
+    table_name=$(echo "${i}" | awk -F '.' '{print $3}')
+    export table_name
+
+    if [ "${TRUNCATE_TABLES}" == "true" ]; then
+      log_time "Truncate table ${DB_SCHEMA_NAME}.${table_name}"
+      psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -c "TRUNCATE TABLE ${DB_SCHEMA_NAME}.${table_name}"
+    fi
+
     if [ "${RUN_MODEL}" == "cloud" ]; then
-      GEN_DATA_PATH=${CLIENT_GEN_PATH}
+      # Split CLIENT_GEN_PATH into array of paths
+      IFS=' ' read -ra GEN_PATHS <<< "${CLIENT_GEN_PATH}"
+      
       tuples=0
-      for file in ${GEN_DATA_PATH}/[0-9]*/${table_name}.tbl.[0-9]*; do
-        if [ -e "$file" ]; then
-          log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -c \"\COPY ${DB_SCHEMA_NAME}.${table_name} FROM PROGRAM 'sed \"s/|$//\" $file' WITH (FORMAT csv, DELIMITER '|', NULL '', ESCAPE E'\\\\\\\\', ENCODING 'LATIN1')\" | grep COPY | awk -F ' ' '{print \$2}'"
-          result=$(
-            psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -c "\COPY ${DB_SCHEMA_NAME}.${table_name} FROM PROGRAM 'sed \"s/|$//\" $file' WITH (FORMAT csv, DELIMITER '|', NULL '', ESCAPE E'\\\\', ENCODING 'LATIN1')" | grep COPY | awk -F ' ' '{print $2}'
-            exit ${PIPESTATUS[0]}
-          )
-          tuples=$((tuples + result))
-        else
-          log_time "Found no file: ${file} for ${table_name}"
-        fi
+      for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
+        log_time "Loading data from path: ${GEN_DATA_PATH}"
+        for file in ${GEN_DATA_PATH}/[0-9]*/${table_name}.tbl.[0-9]*; do
+          if [ -e "$file" ]; then
+            log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -c \"\COPY ${DB_SCHEMA_NAME}.${table_name} FROM PROGRAM 'sed \"s/|$//\" $file' WITH (FORMAT csv, DELIMITER '|', NULL '', ESCAPE E'\\\\\\\\', ENCODING 'LATIN1')\" | grep COPY | awk -F ' ' '{print \$2}'"
+            result=$(
+              psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -c "\COPY ${DB_SCHEMA_NAME}.${table_name} FROM PROGRAM 'sed \"s/|$//\" $file' WITH (FORMAT csv, DELIMITER '|', NULL '', ESCAPE E'\\\\', ENCODING 'LATIN1')" | grep COPY | awk -F ' ' '{print $2}'
+              exit ${PIPESTATUS[0]}
+            )
+            tuples=$((tuples + result))
+          else
+          log_time "No matching files found for pattern: ${GEN_DATA_PATH}/[0-9]*/${table_name}.tbl.[0-9]*"
+          fi
+        done
       done
     else
-      log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -f ${PWD}/${i} -v ext_schema_name=\"$ext_schema_name\" -v DB_SCHEMA_NAME=\"${DB_SCHEMA_NAME}\" | grep INSERT | awk -F ' ' '{print \$3}'"
-      tuples=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -f ${PWD}/${i} -v ext_schema_name="$ext_schema_name" -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}" | grep INSERT | awk -F ' ' '{print $3}'; exit ${PIPESTATUS[0]})
+      log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -f ${PWD}/${i} -v DB_EXT_SCHEMA_NAME=\"${DB_EXT_SCHEMA_NAME}\" -v DB_SCHEMA_NAME=\"${DB_SCHEMA_NAME}\" | grep INSERT | awk -F ' ' '{print \$3}'"
+      tuples=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -f ${PWD}/${i} -v DB_EXT_SCHEMA_NAME="${DB_EXT_SCHEMA_NAME}" -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}" | grep INSERT | awk -F ' ' '{print $3}'; exit ${PIPESTATUS[0]})
     fi
     print_log ${tuples}
     # Release the token
@@ -129,7 +220,7 @@ wait
 # Close the file descriptor
 exec 5>&-
 
-log_time "finished loading tables."
+log_time "Finished loading tables."
 
 log_time "Starting post loading processing..."
 
@@ -140,50 +231,16 @@ if [ "${DB_VERSION}" == "postgresql" ]; then
   psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -f ${PWD}/100.postgresql.indexkeys.sql -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}"
 fi
 
-log_time "Analyze tables"
-
-start_log
-
-schema_name=${DB_SCHEMA_NAME}
-table_name="analyzedb"
-id=""
-
-if [ "${RUN_ANALYZE}" == "true" ]; then
-
-  log_time "Analyze tables started:"
-  log_time "psql ${PSQL_OPTIONS} -t -A -c \"select 'analyze ' ||schemaname||'.'||tablename||';' from pg_tables WHERE schemaname = '${DB_SCHEMA_NAME}' and tablename NOT like '%prt%';\" |xargs -I {} -P ${RUN_ANALYZE_PARALLEL} psql ${PSQL_OPTIONS} -a -A -c \"{}\""
-  psql ${PSQL_OPTIONS} -t -A -c "select 'analyze ' ||schemaname||'.'||tablename||';' from pg_tables WHERE schemaname = '${DB_SCHEMA_NAME}' and tablename NOT like '%prt%';" |xargs -I {} -P ${RUN_ANALYZE_PARALLEL} psql ${PSQL_OPTIONS} -a -A -c "{}"
-
-  #make sure root stats are gathered
-  if [ "${DB_VERSION}" == "gpdb_4_3" ] || [ "${DB_VERSION}" == "gpdb_5" ] || [ "${DB_VERSION}" == "gpdb_6" ]; then
-    SQL_QUERY="select n.nspname, c.relname from pg_class c join pg_namespace n on c.relnamespace = n.oid left outer join (select starelid from pg_statistic group by starelid) s on c.oid = s.starelid join (select tablename from pg_partitions group by tablename) p on p.tablename = c.relname where n.nspname = '${DB_SCHEMA_NAME}' and s.starelid is null order by 1, 2"
-  else
-    SQL_QUERY="select n.nspname, c.relname from pg_class c join pg_namespace n on c.relnamespace = n.oid left outer join (select starelid from pg_statistic group by starelid) s on c.oid = s.starelid join pg_partitioned_table p on p.partrelid = c.oid where n.nspname = '${DB_SCHEMA_NAME}' and s.starelid is null order by 1, 2"
-  fi
-
-  for t in $(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -A -c "${SQL_QUERY}"); do
-    schema_name=$(echo ${t} | awk -F '|' '{print $1}')
-    table_name=$(echo ${t} | awk -F '|' '{print $2}')
-    log_time "Missing root stats for ${schema_name}.${table_name}"
-    SQL_QUERY="ANALYZE ROOTPARTITION ${schema_name}.${table_name}"
-    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -A -c \"${SQL_QUERY}\""
-    psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -A -c "${SQL_QUERY}"
-  done
-  log_time "Analyze tables finished."
-else
-  echo "AnalyzeDB Skipped..."
-fi
-
-tuples="-1"
-print_log ${tuples}
-
 log_time "Clean up gpfdist"
 
 if [ "${RUN_MODEL}" == "remote" ]; then
+  log_time "Clean up gpfdist on client"
   sh ${PWD}/stop_gpfdist.sh
 elif [ "${RUN_MODEL}" == "local" ]; then
+  log_time "Clean up gpfdist on all segments"
   stop_gpfdist
 fi
+
 
 log_time "Step ${step} finished"
 printf "\n"
