@@ -26,7 +26,7 @@ fi
 echo "Cleaning up processes containing keyword '${keyword}'..."
 
 # Find processes containing the keyword, excluding grep and current script
-processes=$(ps aux | grep "${keyword}" | grep -v "grep" | grep -v "cleanup_orphan_process.sh")
+processes=$(ps aux | grep -i "${keyword}" | grep -v "grep" | grep -v "cleanup_orphan_process.sh")
 
 # Check if any processes were found
 if [ -z "$processes" ]; then
