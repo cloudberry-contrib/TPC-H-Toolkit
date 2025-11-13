@@ -30,4 +30,4 @@ done
 
 # Wait and check
 sleep 1
-echo "\nCleanup completed."
+echo "Cleanup completed."
