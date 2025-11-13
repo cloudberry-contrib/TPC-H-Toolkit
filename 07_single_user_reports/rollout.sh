@@ -10,8 +10,9 @@ printf "\n"
 
 init_log ${step}
 
+report_schema="${DB_SCHEMA_NAME}_report"
+
 SF=${GEN_DATA_SCALE}
-report_schema="tpch_reports"
 filter="gpdb"
 
 # Process SQL files in numeric order, using absolute paths

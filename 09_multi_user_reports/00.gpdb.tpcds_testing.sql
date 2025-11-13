@@ -1,2 +1,2 @@
-DROP SCHEMA IF EXISTS tpch_testing CASCADE;
-CREATE SCHEMA tpch_testing;
+DROP SCHEMA IF EXISTS :multi_user_report_schema CASCADE;
+CREATE SCHEMA :multi_user_report_schema;

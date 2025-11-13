@@ -4,45 +4,46 @@ set -e
 PWD=$(get_pwd ${BASH_SOURCE[0]})
 step="multi_user_reports"
 
-init_log ${step}
-
 log_time "Step ${step} started"
 printf "\n"
 
-get_version
+init_log ${step}
+
 filter="gpdb"
+
+multi_user_report_schema="${DB_SCHEMA_NAME}_multi_user_report"
 
 # Process SQL files in numeric order with absolute paths
 for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "%f\n" | sort -n); do
   log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -a -f ${PWD}/${i}"
-  psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -a -f "${PWD}/${i}"
+  psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -a -f "${PWD}/${i}" -v multi_user_report_schema=${multi_user_report_schema}
   echo ""
 done
 
 # Process copy files in numeric order with absolute paths
 for i in $(find "${TPC_H_DIR}/log" -maxdepth 1 -type f -name "rollout_testing_*" -printf "%f\n" | sort -n); do
   logfile="${TPC_H_DIR}/log/${i}"
-  loadsql="\COPY tpch_testing.sql FROM '${logfile}' WITH DELIMITER '|';"
+  loadsql="\COPY ${multi_user_report_schema}.sql FROM '${logfile}' WITH DELIMITER '|';"
   log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -a -c \"${loadsql}\""
   psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -a -c "${loadsql}"
   echo ""
 done
 
-psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -t -A -c "select 'analyze ' || n.nspname || '.' || c.relname || ';' from pg_class c join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'tpch_testing'" | psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -t -A -e
+psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -t -A -c "select 'analyze ' || n.nspname || '.' || c.relname || ';' from pg_class c join pg_namespace n on n.oid = c.relnamespace and n.nspname = '${multi_user_report_schema}'" | psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -t -A -e
 
 # Generate detailed report
 log_time "Generating detailed report"
-psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -P pager=off -f "${PWD}/detailed_report.sql"
+psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -P pager=off -f "${PWD}/detailed_report.sql" -v multi_user_report_schema=${multi_user_report_schema}
 echo ""
 
-CONCURRENT_QUERY_TIME=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -A -c "select round(sum(extract('epoch' from duration))) from tpch_testing.sql")
-THROUGHPUT_ELAPSED_TIME=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -A -c "select max(end_epoch_seconds) - min(start_epoch_seconds) from tpch_testing.sql")
+CONCURRENT_QUERY_TIME=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -A -c "select round(sum(extract('epoch' from duration))) from ${multi_user_report_schema}.sql")
+THROUGHPUT_ELAPSED_TIME=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -A -c "select max(end_epoch_seconds) - min(start_epoch_seconds) from ${multi_user_report_schema}.sql")
 
 S_Q=${MULTI_USER_COUNT}
 SF=${GEN_DATA_SCALE}
 
-SUCCESS_QUERY=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -A -c "select count(*) from tpch_testing.sql where tuples >= 0")
-FAILD_QUERY=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -A -c "select count(*) from tpch_testing.sql where tuples < 0 and id > 1")
+SUCCESS_QUERY=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -A -c "select count(*) from ${multi_user_report_schema}.sql where tuples >= 0")
+FAILD_QUERY=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -A -c "select count(*) from ${multi_user_report_schema}.sql where tuples < 0 and id > 1")
 
 
 echo "********************************************************************************"
