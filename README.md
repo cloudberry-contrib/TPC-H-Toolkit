@@ -1,9 +1,9 @@
-# TPC-H Benchmark Toolkit for HashData/Greenplum/PostgreSQL
+# TPC-H Benchmark Toolkit for Cloudberry Database
 
 [![TPC-H](https://img.shields.io/badge/TPC--H-v3.0.1-blue)](https://www.tpc.org/tpch/default5.asp)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 
-A comprehensive tool for running TPC-H benchmarks on HashData / Greenplum / PostgreSQL databases. This implementation automates the execution of the TPC-H benchmark suite, including data generation, schema creation, data loading, and query execution.
+A comprehensive tool for running TPC-H benchmarks on Cloudberry Database. This implementation automates the execution of the TPC-H benchmark suite, including data generation, schema creation, data loading, and query execution.
 
 ## Overview
 
@@ -15,7 +15,7 @@ This tool provides:
 - Detailed performance reporting
 
 ## Table of Contents
-- [Decision Support Benchmark for HashData Database](#decision-support-benchmark-for-hashdata-database)
+- [Decision Support Benchmark for Cloudberry Database](#decision-support-benchmark-for-cloudberry-database)
   - [Overview](#overview)
   - [Table of Contents](#table-of-contents)
   - [Quick Start](#quick-start)
@@ -73,7 +73,7 @@ For running tests on PostgreSQL compatible databases (Hashdata Enterprise, SynxD
 
 | TPC-H Benchmark Version | Published Date | Standard Specification |
 |-|-|-|
-| 3.0.1 (latest) | 2021/02/18 | [PDF](https://tpc.org/TPC_Documents_Current_Versions/pdf/tpc-h_v3.0.0.pdf)|
+| 3.0.1 (latest) | 2022/4/28 | [PDF](https://tpc.org/TPC_Documents_Current_Versions/pdf/tpc-h_v3.0.1.pdf)|
 | 2.18.0 | 2017/06/12 | [PDF](https://tpc.org/tpc_documents_current_versions/pdf/tpc-h_v2.18.0.pdf)|
 
 This tool uses TPC-H 3.0.1 as the default benchmark specification.
@@ -90,7 +90,7 @@ This tool uses TPC-H 3.0.1 as the default benchmark specification.
 For running tests directly on the coordinator host:
 
 1. Set `RUN_MODEL="local"` in `tpch_variables.sh`
-2. Ensure you have a running HashData Database with `gpadmin` access
+2. Ensure you have a running Cloudberry Database with `gpadmin` access
 3. Create `gpadmin` database
 4. Configure password-less `ssh` between `mdw` (coordinator) and segment nodes (`sdw1..n`)
 
@@ -123,7 +123,7 @@ Clone the repository with Git:
 
 ```bash
 ssh gpadmin@mdw
-git clone https://github.com/hashdata-xyz/TPC-H-Toolkit.git
+git clone https://github.com/cloudberry-contrib/TPC-H-Toolkit.git
 ```
 
 Place the folder under `/home/gpadmin/` and set ownership:
@@ -290,7 +290,7 @@ The following modifications were made to the standard TPC-H queries for compatib
    - Verify password-less SSH between coordinator and segments
 
 2. **Permission Errors**
-   - Verify ownership: `chown -R gpadmin:gpadmin /home/gpadmin/TPC-H-HashData`
+   - Verify ownership: `chown -R gpadmin:gpadmin /home/gpadmin/TPC-H-Toolkit`
    - Ensure sufficient disk space in data directories
 
 3. **Configuration Validation**
