@@ -1,4 +1,4 @@
-# Decision Support Benchmark for HashData Database
+# TPC-H Benchmark Toolkit for HashData/Greenplum/PostgreSQL
 
 [![TPC-H](https://img.shields.io/badge/TPC--H-v3.0.1-blue)](https://www.tpc.org/tpch/default5.asp)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
@@ -45,8 +45,8 @@ This tool provides:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/hashdata-xyz/TPC-H-HashData.git
-cd TPC-H-HashData
+git clone https://github.com/cloudberry-contrib/TPC-H-Toolkit.git
+cd TPC-H-Toolkit
 
 # 2. Configure your environment
 vim tpch_variables.sh
@@ -115,7 +115,7 @@ ssh root@mdw
 yum -y install gcc make
 ```
 
-The original source code is from the [TPC website](http://tpc.org/tpc_documents_current_versions/current_specifications5.asp).
+The TPC-H 3.0.1 source code is included in the repository as `TPCH-software-code-3.0.1.zip` in the 00_compile_tpch directory. Original source can also be downloaded from the [TPC website](http://tpc.org/tpc_documents_current_versions/current_specifications5.asp).
 
 ## Installation
 
@@ -123,13 +123,13 @@ Clone the repository with Git:
 
 ```bash
 ssh gpadmin@mdw
-git clone https://github.com/hashdata-xyz/TPC-H-HashData.git
+git clone https://github.com/hashdata-xyz/TPC-H-Toolkit.git
 ```
 
 Place the folder under `/home/gpadmin/` and set ownership:
 
 ```bash
-chown -R gpadmin:gpadmin TPC-H-HashData
+chown -R gpadmin:gpadmin TPC-H-Toolkit
 ```
 
 ## Usage
@@ -138,7 +138,7 @@ To run the benchmark interactively:
 
 ```bash
 ssh gpadmin@mdw
-cd ~/TPC-H-HashData
+cd ~/TPC-H-Toolkit
 ./tpch.sh
 ```
 
@@ -325,4 +325,4 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 The TPC-H benchmark specification is owned by the Transaction Processing Performance Council (TPC). This toolkit is designed to run the TPC-H benchmark but is not officially endorsed by the TPC.
 
-The TPC-H database generation tools (dbgen and qgen) are used under the terms of the TPC End User License Agreement. See [00_compile_tpch/EULA.txt](00_compile_tpch/EULA.txt) for details.
+The TPC-H 3.0.1 database generation tools (dbgen and qgen) are used under the terms of the TPC End User License Agreement. See [00_compile_tpch/EULA.txt](00_compile_tpch/EULA.txt) for details.
