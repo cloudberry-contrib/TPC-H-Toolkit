@@ -112,7 +112,7 @@
 #define SET_DBASE       ".LOGON %s\n"
 #endif
 
-#ifdef HASHDATA
+#ifdef CLOUDBERRY
 #define GEN_QUERY_PLAN "EXPLAIN"
 #define START_TRAN "BEGIN;"
 #define END_TRAN "END;"
