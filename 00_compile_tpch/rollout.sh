@@ -22,6 +22,7 @@ function make_tpc()
   #compile the tools
   cd ${PWD}/dbgen
   rm -f ./*.o
+  make clean
   ADDITIONAL_CFLAGS_OPTION="-g -Wno-unused-function -Wno-unused-but-set-variable -Wno-format -fcommon" make
   cd ..
 }
