@@ -20,7 +20,10 @@ compile_flag="true"
 function make_tpc()
 {
   #compile the tools
-  cd ${PWD}/dbgen
+  unzip -d ${TPC_H_DIR}/00_compile_tpch/ ${TPC_H_DIR}/00_compile_tpch/TPCH-software-code-3.0.1.zip
+  cp ${TPC_H_DIR}/00_compile_tpch/dbgen/makefile ${TPC_H_DIR}/00_compile_tpch/TPCH-software-code-3.0.1/dbgen/
+  cp ${TPC_H_DIR}/00_compile_tpch/dbgen/tpcd.h ${TPC_H_DIR}/00_compile_tpch/TPCH-software-code-3.0.1/dbgen/
+  cd ${TPC_H_DIR}/00_compile_tpch/TPCH-software-code-3.0.1/dbgen
   rm -f ./*.o
   make clean
   ADDITIONAL_CFLAGS_OPTION="-g -Wno-unused-function -Wno-unused-but-set-variable -Wno-format -fcommon" make
