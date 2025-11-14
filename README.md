@@ -73,7 +73,7 @@ For running tests on PostgreSQL compatible databases (Hashdata Enterprise, SynxD
 
 | TPC-H Benchmark Version | Published Date | Standard Specification |
 |-|-|-|
-| 3.0.1 (latest) | 2021/02/18 | [PDF](https://tpc.org/TPC_Documents_Current_Versions/pdf/tpc-h_v3.0.0.pdf)|
+| 3.0.1 (latest) | 2022/4/28 | [PDF](https://tpc.org/TPC_Documents_Current_Versions/pdf/tpc-h_v3.0.1.pdf)|
 | 2.18.0 | 2017/06/12 | [PDF](https://tpc.org/tpc_documents_current_versions/pdf/tpc-h_v2.18.0.pdf)|
 
 This tool uses TPC-H 3.0.1 as the default benchmark specification.
