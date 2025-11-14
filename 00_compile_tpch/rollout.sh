@@ -27,7 +27,10 @@ function make_tpc()
   rm -f ./*.o
   make clean
   ADDITIONAL_CFLAGS_OPTION="-g -Wno-unused-function -Wno-unused-but-set-variable -Wno-format -fcommon" make
-  cd ..
+  cp dbgen ${TPC_H_DIR}/00_compile_tpcds/dbgen/
+  cp qgen ${TPC_H_DIR}/00_compile_tpcds/dbgen/
+  cp dists.dss ${TPC_H_DIR}/00_compile_tpcds/dbgen/
+  cd ../../
 }
 
 function copy_tpc()
