@@ -11,17 +11,6 @@ export RUN_MODEL="local"
 ## eg. export PSQL_OPTIONS="-h 2f445c57-c838-4038-a410-50ee36f9461d.ai -p 5432"
 export PSQL_OPTIONS=""
 
-## The following variables only take effect when RUN_MODEL is set to "cloud".
-### Default path to store the generated benchmark data, separated by space for multiple paths.
-export CLIENT_GEN_PATH="/tmp/hbenchmark"
-### How many parallel processes to run on each data path to generate data    
-### Default is 2, max is Number of CPU cores / number of $CLIENT_GEN_PATH.  
-export CLIENT_GEN_PARALLEL="2"
-
-## The following variables only take effect when RUN_MODEL is set to "local".
-### How many parallel processes to run on each segment to generate data in local mode
-export LOCAL_GEN_PARALLEL="1"
-
 # benchmark options
 export GEN_DATA_SCALE="1"
 export MULTI_USER_COUNT="2"
@@ -38,6 +27,17 @@ export RUN_COMPILE_TPCH="true"
 # should true under normal circumstances
 export RUN_GEN_DATA="true"
 export GEN_NEW_DATA="true"
+## The following variables only take effect when RUN_MODEL is set to "cloud".
+### Default path to store the generated benchmark data, separated by space for multiple paths.
+export CLIENT_GEN_PATH="/tmp/hbenchmark"
+### How many parallel processes to run on each data path to generate data    
+### Default is 2, max is Number of CPU cores / number of $CLIENT_GEN_PATH.  
+export CLIENT_GEN_PARALLEL="2"
+## Use custom setting as CLIENT_GEN_PATH in local mode on segments
+export USING_CUSTOM_GEN_PATH_IN_LOCAL_MODE="false"
+## The following variables only take effect when RUN_MODEL is set to "local".
+### How many parallel processes to run on each segment to generate data in local mode
+export LOCAL_GEN_PARALLEL="1"
 
 # step 02_init
 export RUN_INIT="true"
