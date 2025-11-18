@@ -120,16 +120,18 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
         # Split CUSTOM_GEN_PATH into array of paths to support multiple directories
         IFS=' ' read -ra GEN_PATHS <<< "${CUSTOM_GEN_PATH}"       
         counter=0
-        PORT=${GPFDIST_PORT}
+        flag=10
+
         for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
+          PORT=$((GPFDIST_PORT + flag))
           if [ "${counter}" -eq "0" ]; then
             LOCATION="'"
           else
             LOCATION+="', '"
           fi
           LOCATION+="gpfdist://${EXT_HOST}:${PORT}/[0-9]*/${table_name}.tbl*"
-          let PORT=$PORT+1
           counter=$((counter + 1))
+          let flag=$flag+1
         done
         LOCATION+="'"
       elif [ "${RUN_MODEL}" == "local" ] && [ "${USING_CUSTOM_GEN_PATH_IN_LOCAL_MODE}" == "true" ]; then
