@@ -186,6 +186,8 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
     done
     log_time "Now generating data...This may take a while."
     count=$(ps -ef |grep -v grep |grep "generate_data.sh"|wc -l || true)
+    seconds=0
+    echo -ne "Generating data duration: "
     while [ "$count" -gt "0" ]; do
       printf "\rGenerating data duration: ${seconds} second(s)"
       sleep 5
@@ -198,8 +200,8 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
     gen_data
     echo "Current database running this test is ${VERSION}"
     echo ""
-    count=$(get_count_generate_data)
     log_time "Now generating data...This may take a while."
+    count=$(get_count_generate_data)
     seconds=0
     echo -ne "Generating data duration: "
     while [ "$count" -gt "0" ]; do
