@@ -112,14 +112,7 @@ function gen_data() {
       exit 1
     fi
     
-    # Get segment hosts from database
-    if [ "${DB_VERSION}" == "gpdb_4_3" ] || [ "${DB_VERSION}" == "gpdb_5" ]; then
-      SQL_QUERY="select distinct g.hostname from gp_segment_configuration g join pg_filespace_entry p on g.dbid = p.fsedbid join pg_tablespace t on t.spcfsoid = p.fsefsoid where g.content >= 0 and g.role = '${GPFDIST_LOCATION}' and t.spcname = 'pg_default' order by 1"
-    else
-      SQL_QUERY="select distinct g.hostname from gp_segment_configuration g where g.content >= 0 and g.role = '${GPFDIST_LOCATION}' order by 1"
-    fi
-
-    TOTAL_HOSTS=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -t -c "${SQL_QUERY}" | wc -l)
+    TOTAL_HOSTS=$(wc -l < ${TPC_H_DIR}/segment_hosts.txt)
 
     log_time "Number of segment hosts: ${TOTAL_HOSTS}"
     log_time "Number of data generation paths: ${TOTAL_PATHS}"
@@ -129,7 +122,7 @@ function gen_data() {
     PARALLEL=$((TOTAL_PATHS * GEN_DATA_PARALLEL * TOTAL_HOSTS))
     log_time "Total parallel processes: ${PARALLEL} (paths: ${TOTAL_PATHS} * parallel_per_path: ${GEN_DATA_PARALLEL} * hosts: ${TOTAL_HOSTS})"
     
-    for EXT_HOST in $(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -t -c "${SQL_QUERY}"); do
+    for EXT_HOST in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
       # For each path, start a gpfdist instance
       for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
         log_time "ssh -n ${EXT_HOST} \"rm -rf ${GEN_DATA_PATH}/hbenchmark\""
@@ -140,7 +133,7 @@ function gen_data() {
     done
 
     CHILD=1
-    for EXT_HOST in $(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -t -c "${SQL_QUERY}"); do
+    for EXT_HOST in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
       for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
         for ((j=1; j<=GEN_DATA_PARALLEL; j++)); do
           GEN_DATA_SUBPATH="${GEN_DATA_PATH}/hbenchmark/${CHILD}"
