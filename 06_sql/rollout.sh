@@ -26,7 +26,7 @@ if [ "${RUN_QGEN}" == true ]; then
   log_time "Finished generate queries based on scale"
 fi
 
-rm -f ${TPC_DS_DIR}/log/*single.explain_analyze.log
+rm -f ${TPC_H_DIR}/log/*single.explain_analyze.log
 
 if [ "${ON_ERROR_STOP}" == 0 ]; then
   set +e
