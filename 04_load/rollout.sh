@@ -126,13 +126,15 @@ if [ "${RUN_MODEL}" == "remote" ]; then
   else
     log_time "Using environment file: ${env_file}"
   fi
-  
+
   # Start gpfdist for each data path with different ports
-  PORT=${GPFDIST_PORT}
+  flag=10
   for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
+    GEN_DATA_PATH="${GEN_DATA_PATH}/hbenchmark"
+    PORT=$((GPFDIST_PORT + flag))
     log_time "Starting gpfdist on port ${PORT} for path: ${GEN_DATA_PATH}"
     sh ${PWD}/start_gpfdist.sh $PORT "${GEN_DATA_PATH}" ${env_file}
-    let PORT=$PORT+1
+    let flag=$flag+1
   done
   
   # Set GEN_DATA_PATH to the first path for backward compatibility
