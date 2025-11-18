@@ -74,8 +74,8 @@ function gen_data() {
       SEG_DATA_PATH=$(echo ${i} | awk -F '|' '{print $3}' | sed 's#//#/#g')
       for ((j=1; j<=GEN_DATA_PARALLEL; j++)); do
         GEN_DATA_PATH="${SEG_DATA_PATH}/hbenchmark/${CHILD}"
-        log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~/; ./generate_data.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_PATH} > /tmp/tpch.generate_data.${CHILD}.log 2>&1 &'\""
-        ssh -n ${EXT_HOST} "bash -c 'cd ~/; ./generate_data.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_PATH} > /tmp/tpch.generate_data.${CHILD}.log 2>&1 &'" &
+        log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~/; ./generate_data.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_PATH} > ${SEG_DATA_PATH}/hbenchmark/logs/tpch.generate_data.${CHILD}.log 2>&1 &'\""
+        ssh -n ${EXT_HOST} "bash -c 'cd ~/; ./generate_data.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_PATH} > ${SEG_DATA_PATH}/hbenchmark/logs/tpch.generate_data.${CHILD}.log 2>&1 &'" &
         CHILD=$((CHILD + 1))
       done
     done
@@ -122,9 +122,9 @@ function gen_data() {
     for EXT_HOST in $(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -t -c "${SQL_QUERY}"); do
       for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
         for ((j=1; j<=GEN_DATA_PARALLEL; j++)); do
-          GEN_DATA_PATH="${GEN_DATA_PATH}/hbenchmark/${CHILD}"
-          log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~/; ./generate_data.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_PATH} > /tmp/tpch.generate_data.${CHILD}.log 2>&1 &'\""
-          ssh -n ${EXT_HOST} "bash -c 'cd ~/; ./generate_data.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_PATH} > /tmp/tpch.generate_data.${CHILD}.log 2>&1 &'" &
+          GEN_DATA_SUBPATH="${GEN_DATA_PATH}/hbenchmark/${CHILD}"
+          log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~/; ./generate_data.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_SUBPATH} > ${GEN_DATA_PATH}/hbenchmark/logs/tpch.generate_data.${CHILD}.log 2>&1 &'\""
+          ssh -n ${EXT_HOST} "bash -c 'cd ~/; ./generate_data.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_SUBPATH} > ${GEN_DATA_PATH}/hbenchmark/logs/tpch.generate_data.${CHILD}.log 2>&1 &'" &
           CHILD=$((CHILD + 1))
         done
       done
