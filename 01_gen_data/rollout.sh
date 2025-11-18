@@ -184,25 +184,29 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
         CHILD=$((CHILD + 1))
       done
     done
-    log_time "Waiting for data generation processes to complete..."
-    wait
+    log_time "Now generating data...This may take a while."
+    count=$(ps -ef |grep -v grep |grep "generate_data.sh"|wc -l || true)
+    while [ "$count" -gt "0" ]; do
+      printf "\rGenerating data duration: ${seconds} second(s)"
+      sleep 5
+      seconds=$((seconds + 5))
+      count=$(ps -ef |grep -v grep |grep "generate_data.sh"|wc -l || true)
+    done
   else
     kill_orphaned_data_gen
     copy_generate_data
     gen_data
     echo "Current database running this test is ${VERSION}"
     echo ""
-    get_count_generate_data
-    echo "Now generating data.  This may take a while."
+    count=$(get_count_generate_data)
+    log_time "Now generating data...This may take a while."
     seconds=0
     echo -ne "Generating data duration: "
-    tput sc
     while [ "$count" -gt "0" ]; do
-      tput rc
-      echo -ne "${seconds} second(s)"
+      printf "\rGenerating data duration: ${seconds} second(s)"
       sleep 5
-      seconds=$(( seconds + 5 ))
-      get_count_generate_data
+      seconds=$((seconds + 5))
+      count=$(get_count_generate_data)
     done
   fi
     
