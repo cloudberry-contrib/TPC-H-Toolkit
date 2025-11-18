@@ -109,7 +109,6 @@ else
   echo "Binary works, no compiling needed."
 fi
 
-create_hosts_file
 copy_queries
 copy_tpc
 print_log

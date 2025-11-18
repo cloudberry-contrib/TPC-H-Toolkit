@@ -117,19 +117,48 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
 
       if [ "${RUN_MODEL}" == "remote" ]; then
         EXT_HOST=$(hostname -I | awk '{print $1}')
-        # Split CLIENT_GEN_PATH into array of paths to support multiple directories
-        IFS=' ' read -ra GEN_PATHS <<< "${CLIENT_GEN_PATH}"       
+        # Split CUSTOM_GEN_PATH into array of paths to support multiple directories
+        IFS=' ' read -ra GEN_PATHS <<< "${CUSTOM_GEN_PATH}"       
         counter=0
-        PORT=${GPFDIST_PORT}
+        flag=10
+
         for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
+          PORT=$((GPFDIST_PORT + flag))
           if [ "${counter}" -eq "0" ]; then
             LOCATION="'"
           else
             LOCATION+="', '"
           fi
-          LOCATION+="gpfdist://${EXT_HOST}:${PORT}/[0-9]*/${table_name}.tbl*"
-          let PORT=$PORT+1
+          LOCATION+="gpfdist://${EXT_HOST}:${PORT}/[0-9]*/${table_name}.tbl.[0-9]*"
           counter=$((counter + 1))
+          let flag=$flag+1
+        done
+        LOCATION+="'"
+      elif [ "${RUN_MODEL}" == "local" ] && [ "${USING_CUSTOM_GEN_PATH_IN_LOCAL_MODE}" == "true" ]; then
+        # Handle local mode with custom CUSTOM_GEN_PATH, but still use segment nodes for data
+        # Handle custom CUSTOM_GEN_PATH in local mode
+        IFS=' ' read -ra GEN_PATHS <<< "${CUSTOM_GEN_PATH}"
+        
+        if [ ${#GEN_PATHS[@]} -eq 0 ]; then
+          log_time "ERROR: CUSTOM_GEN_PATH is empty or not set"
+          exit 1
+        fi
+        
+        flag=10
+        for EXT_HOST in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
+          # For each path, start a gpfdist instance
+          for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
+            PORT=$((GPFDIST_PORT + flag))
+            let flag=$flag+1
+            
+            if [ "${counter}" -eq "0" ]; then
+              LOCATION="'"
+            else
+              LOCATION+="', '"
+            fi
+              LOCATION+="gpfdist://${EXT_HOST}:${PORT}/[0-9]*/${table_name}.tbl.[0-9]*"
+              counter=$((counter + 1))
+          done
         done
         LOCATION+="'"
       else
@@ -149,7 +178,7 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
           else
             LOCATION+="', '"
           fi
-          LOCATION+="gpfdist://${EXT_HOST}:${PORT}/${table_name}.tbl.[0-9]*"
+          LOCATION+="gpfdist://${EXT_HOST}:${PORT}/[0-9]*/${table_name}.tbl.[0-9]*"
           counter=$((counter + 1))
         done
         LOCATION+="'"

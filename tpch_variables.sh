@@ -1,26 +1,20 @@
 # environment options
+
+## ADMIN_USER should be set to the OS user that executes this toolkit
 export ADMIN_USER="gpadmin"
+## BENCH_ROLE should be set to the database user that will be used to run the benchmark
 export BENCH_ROLE="hbench"
+## DB_SCHEMA_NAME should be set to the database schema that will be used to store the TPC-H tables
 export DB_SCHEMA_NAME="tpch"
 
 ## Set to "local" to run the benchmark on the COORDINATOR host or "cloud" to run the benchmark from a remote client.
 export RUN_MODEL="local"
 
-## Default port is configured via the env setting of $PGPORT for user $ADMIN_USER
-## Configure the host/port/user to connect to the cluster running the test. Can be left empty when running in local mode with gpadmin.
-## eg. export PSQL_OPTIONS="-h 2f445c57-c838-4038-a410-50ee36f9461d.ai -p 5432"
+## Configure the host/port/user to connect to the cluster running the test. Can be left empty when all variables are set for the $ADMIN_USER
+## Database user defined in this variable with '-U' will be the user to connect to the database, better to be the same with $BENCH_ROLE
+## Database user to run this benchmark, should have enough permissions, better to use supper user.
+## eg. export PSQL_OPTIONS="-h 2f445c57-c838-4038-a410-50ee36f9461d.ai -p 5432 -U dsbench"
 export PSQL_OPTIONS=""
-
-## The following variables only take effect when RUN_MODEL is set to "cloud".
-### Default path to store the generated benchmark data, separated by space for multiple paths.
-export CLIENT_GEN_PATH="/tmp/hbenchmark"
-### How many parallel processes to run on each data path to generate data    
-### Default is 2, max is Number of CPU cores / number of $CLIENT_GEN_PATH.  
-export CLIENT_GEN_PARALLEL="2"
-
-## The following variables only take effect when RUN_MODEL is set to "local".
-### How many parallel processes to run on each segment to generate data in local mode
-export LOCAL_GEN_PARALLEL="1"
 
 # benchmark options
 export GEN_DATA_SCALE="1"
@@ -38,6 +32,16 @@ export RUN_COMPILE_TPCH="true"
 # should true under normal circumstances
 export RUN_GEN_DATA="true"
 export GEN_NEW_DATA="true"
+
+### Default path to store the generated benchmark data, separated by space for multiple paths.
+export CUSTOM_GEN_PATH="/tmp/hbenchmark"
+### How many parallel processes to run on each data path to generate data in all modes
+### Default is 2, max is Number of CPU cores / number of data paths used in each modes. 
+export GEN_DATA_PARALLEL="2"
+
+### The following variables only take effect when RUN_MODEL is set to "local".
+### Use custom setting as CUSTOM_GEN_PATH in local mode on segments
+export USING_CUSTOM_GEN_PATH_IN_LOCAL_MODE="false"
 
 # step 02_init
 export RUN_INIT="true"
@@ -57,7 +61,7 @@ export LOAD_PARALLEL="2"
 ### Truncate existing tables before loading data
 export TRUNCATE_TABLES="true"
 
-## step 05_analyze
+# step 05_analyze
 export RUN_ANALYZE="true"
 ### How many parallel processes to analyze tables, default is 5, max is 24.
 export RUN_ANALYZE_PARALLEL="5"

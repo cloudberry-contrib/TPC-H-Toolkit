@@ -31,36 +31,57 @@ function stop_gpfdist()
   wait
 }
 
-function start_gpfdist()
-{
+function start_gpfdist() {
   stop_gpfdist
   sleep 1
-  
-  if [ "${VERSION}" == "gpdb_4_3" ] || [ "${VERSION}" == "gpdb_5" ]; then
-    SQL_QUERY="select rank() over (partition by g.hostname order by p.fselocation), g.hostname, p.fselocation as path from gp_segment_configuration g join pg_filespace_entry p on g.dbid = p.fsedbid join pg_tablespace t on t.spcfsoid = p.fsefsoid where g.content >= 0 and g.role = '${GPFDIST_LOCATION}' and t.spcname = 'pg_default' order by g.hostname"
+
+  if [ "${USING_CUSTOM_GEN_PATH_IN_LOCAL_MODE}" == "true" ]; then
+    # Handle custom CUSTOM_GEN_PATH in local mode
+    IFS=' ' read -ra GEN_PATHS <<< "${CUSTOM_GEN_PATH}"
+    
+    if [ ${#GEN_PATHS[@]} -eq 0 ]; then
+      log_time "ERROR: CUSTOM_GEN_PATH is empty or not set"
+      exit 1
+    fi
+    
+    flag=10
+    for EXT_HOST in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
+      # For each path, start a gpfdist instance
+      for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
+        GEN_DATA_PATH="${GEN_DATA_PATH}/hbenchmark"
+        PORT=$((GPFDIST_PORT + flag))
+        let flag=$flag+1
+        log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~${ADMIN_USER}; ./start_gpfdist.sh $PORT ${GEN_DATA_PATH} ${env_file}'\""
+        ssh -n ${EXT_HOST} "bash -c 'cd ~${ADMIN_USER}; ./start_gpfdist.sh $PORT ${GEN_DATA_PATH} ${env_file}'" &
+      done
+    done
   else
-    SQL_QUERY="select rank() over(partition by g.hostname order by g.datadir), g.hostname, g.datadir from gp_segment_configuration g where g.content >= 0 and g.role = '${GPFDIST_LOCATION}' order by g.hostname"
+    # Original logic for default local mode
+    if [ "${DB_VERSION}" == "gpdb_4_3" ] || [ "${DB_VERSION}" == "gpdb_5" ]; then
+      SQL_QUERY="select rank() over (partition by g.hostname order by p.fselocation), g.hostname, p.fselocation as path from gp_segment_configuration g join pg_filespace_entry p on g.dbid = p.fsedbid join pg_tablespace t on t.spcfsoid = p.fsefsoid where g.content >= 0 and g.role = '${GPFDIST_LOCATION}' and t.spcname = 'pg_default' order by g.hostname"
+    else
+      SQL_QUERY="select rank() over(partition by g.hostname order by g.datadir), g.hostname, g.datadir from gp_segment_configuration g where g.content >= 0 and g.role = '${GPFDIST_LOCATION}' order by g.hostname"
+    fi
+
+    flag=10
+    for i in $(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -t -c "${SQL_QUERY}"); do
+      CHILD=$(echo ${i} | awk -F '|' '{print $1}')
+      EXT_HOST=$(echo ${i} | awk -F '|' '{print $2}')
+      GEN_DATA_PATH=$(echo ${i} | awk -F '|' '{print $3}'| sed 's#//#/#g')
+      GEN_DATA_PATH="${GEN_DATA_PATH}/hbenchmark"
+      PORT=$((GPFDIST_PORT + flag))
+      let flag=$flag+1
+      log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~${ADMIN_USER}; ./start_gpfdist.sh $PORT ${GEN_DATA_PATH} ${env_file}'\""
+      ssh -n ${EXT_HOST} "bash -c 'cd ~${ADMIN_USER}; ./start_gpfdist.sh $PORT ${GEN_DATA_PATH} ${env_file}'" &
+    done
   fi
-  
-  flag=10
-  for i in $(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -t -c "${SQL_QUERY}"); do
-    CHILD=$(echo ${i} | awk -F '|' '{print $1}')
-    EXT_HOST=$(echo ${i} | awk -F '|' '{print $2}')
-    GEN_DATA_PATH=$(echo ${i} | awk -F '|' '{print $3}' | sed 's#//#/#g')
-    GEN_DATA_PATH="${GEN_DATA_PATH}/hbenchmark"
-    PORT=$((GPFDIST_PORT + flag))
-    let flag=$flag+1
-    log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~${ADMIN_USER}; ./start_gpfdist.sh $PORT ${GEN_DATA_PATH} ${env_file}'\""
-    ssh -n ${EXT_HOST} "bash -c 'cd ~${ADMIN_USER}; ./start_gpfdist.sh $PORT ${GEN_DATA_PATH} ${env_file}'" &
-  done
   wait
 }
 
-
 if [ "${RUN_MODEL}" == "remote" ]; then
   sh ${PWD}/stop_gpfdist.sh
-  # Split CLIENT_GEN_PATH into array of paths to support multiple directories
-  IFS=' ' read -ra GEN_PATHS <<< "${CLIENT_GEN_PATH}"
+  # Split CUSTOM_GEN_PATH into array of paths to support multiple directories
+  IFS=' ' read -ra GEN_PATHS <<< "${CUSTOM_GEN_PATH}"
   
   CLOUDBERRY_BINARY_PATH=${GPHOME}
   env_file=""
@@ -98,15 +119,17 @@ if [ "${RUN_MODEL}" == "remote" ]; then
   else
     log_time "Using environment file: ${env_file}"
   fi
-  
+
   # Start gpfdist for each data path with different ports
-  PORT=${GPFDIST_PORT}
+  flag=10
   for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
+    GEN_DATA_PATH="${GEN_DATA_PATH}/hbenchmark"
+    PORT=$((GPFDIST_PORT + flag))
     log_time "Starting gpfdist on port ${PORT} for path: ${GEN_DATA_PATH}"
     sh ${PWD}/start_gpfdist.sh $PORT "${GEN_DATA_PATH}" ${env_file}
-    let PORT=$PORT+1
+    let flag=$flag+1
   done
-  
+
   # Set GEN_DATA_PATH to the first path for backward compatibility
   GEN_DATA_PATH=${GEN_PATHS[0]}
 elif [ "${RUN_MODEL}" == "local" ]; then
@@ -187,13 +210,13 @@ for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "
     fi
 
     if [ "${RUN_MODEL}" == "cloud" ]; then
-      # Split CLIENT_GEN_PATH into array of paths
-      IFS=' ' read -ra GEN_PATHS <<< "${CLIENT_GEN_PATH}"
+      # Split CUSTOM_GEN_PATH into array of paths
+      IFS=' ' read -ra GEN_PATHS <<< "${CUSTOM_GEN_PATH}"
       
       tuples=0
       for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
         log_time "Loading data from path: ${GEN_DATA_PATH}"
-        for file in ${GEN_DATA_PATH}/[0-9]*/${table_name}.tbl.[0-9]*; do
+        for file in ${GEN_DATA_PATH}/hbenchmark/[0-9]*/${table_name}.tbl.[0-9]*; do
           if [ -e "$file" ]; then
             log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -c \"\COPY ${DB_SCHEMA_NAME}.${table_name} FROM PROGRAM 'sed \"s/|$//\" $file' WITH (FORMAT csv, DELIMITER '|', NULL '', ESCAPE E'\\\\\\\\', ENCODING 'LATIN1')\" | grep COPY | awk -F ' ' '{print \$2}'"
             result=$(

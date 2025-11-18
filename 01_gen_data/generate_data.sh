@@ -67,6 +67,8 @@ if [ "$SINGLE_SEGMENT" -eq "1" ]; then
     cd $DATA_DIRECTORY
 	$PWD/dbgen -s $GEN_DATA_SCALE -C $PARALLEL -S $CHILD -f
 	cd ${PWD}
+	rm -f $DATA_DIRECTORY/nation.tbl
+	rm -f $DATA_DIRECTORY/region.tbl
 	# make sure there is a file in each directory so that gpfdist doesn't throw an error
 	declare -a tables=("supplier" "region" "part" "partsupp" "customer" "orders" "nation" "lineitem")
 

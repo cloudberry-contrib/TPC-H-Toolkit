@@ -13,7 +13,7 @@ if [ "${GEN_DATA_SCALE}" == "" ] || [ "${BENCH_ROLE}" == "" ]; then
 fi
 
 # Define data loading log file
-LOG_FILE="${TPC_DS_DIR}/log/rollout_load.log"
+LOG_FILE="${TPC_H_DIR}/log/rollout_load.log"
 
 if [ "${UNIFY_QGEN_SEED}" == "true" ]; then
   # Use a fixed RNGSEED when unified seed is enabled

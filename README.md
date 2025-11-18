@@ -66,7 +66,7 @@ For running tests on MPP Architecture (Cloudberry / Greenplum / HashData Lightni
 For running tests on PostgreSQL compatible databases (Hashdata Enterprise, SynxDB Elastic):
 
 1. Set `RUN_MODEL="cloud"` in `tpch_variables.sh`
-2. Configure `PSQL_OPTIONS`, `CLIENT_GEN_PATH`, and `CLIENT_GEN_PARALLEL`
+2. Configure `PSQL_OPTIONS`, `CUSTOM_GEN_PATH`, and `GEN_DATA_PARALLEL`
 3. Run with `./tpch.sh`
 
 ## Supported TPC-H Versions
@@ -103,8 +103,8 @@ For running tests from a remote client:
    ```bash
    export RANDOM_DISTRIBUTION="true"
    export TABLE_STORAGE_OPTIONS="compresstype=zstd, compresslevel=5"
-   export CLIENT_GEN_PATH="/tmp/dsbenchmark"
-   export CLIENT_GEN_PARALLEL="2"
+   export CUSTOM_GEN_PATH="/tmp/dsbenchmark"
+   export GEN_DATA_PARALLEL="2"
    ```
 
 ### TPC-H Tools Dependencies
@@ -166,11 +166,11 @@ export RUN_MODEL="local"  # "local" or "cloud"
 export PSQL_OPTIONS="-h hostname -p 5432"  # Database connection options
 
 # Cloud mode settings
-export CLIENT_GEN_PATH="/tmp/dsbenchmark"  # Location for data generation
-export CLIENT_GEN_PARALLEL="2"             # Parallel data generation processes
+export CUSTOM_GEN_PATH="/tmp/dsbenchmark"  # Location for data generation
+export GEN_DATA_PARALLEL="2"             # Parallel data generation processes
 
 # Local mode settings
-export LOCAL_GEN_PARALLEL="1"  # Parallel processes per segment
+export GEN_DATA_PARALLEL="1"  # Parallel processes per segment
 ```
 
 ### Benchmark Options
@@ -255,7 +255,7 @@ export TABLE_USE_PARTITION="true"
 ### Concurrency Tuning
 ```bash
 # Adjust based on available CPU cores
-export CLIENT_GEN_PARALLEL="$(nproc)"
+export GEN_DATA_PARALLEL="$(nproc)"
 export MULTI_USER_COUNT="$(( $(nproc) / 2 ))"
 ```
 
