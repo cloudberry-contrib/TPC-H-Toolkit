@@ -121,6 +121,7 @@ function gen_data() {
     # Each path gets GEN_DATA_PARALLEL processes per host
     PARALLEL=$((TOTAL_PATHS * GEN_DATA_PARALLEL * TOTAL_HOSTS))
     log_time "Total parallel processes: ${PARALLEL} (paths: ${TOTAL_PATHS} * parallel_per_path: ${GEN_DATA_PARALLEL} * hosts: ${TOTAL_HOSTS})"
+    log_time "Clean up and prepare data generation folders on segments."
     
     for EXT_HOST in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
       # For each path, start a gpfdist instance
@@ -131,7 +132,7 @@ function gen_data() {
         ssh -n ${EXT_HOST} "mkdir -p ${GEN_DATA_PATH}/hbenchmark/logs"
       done
     done
-
+    log_time "Starting data generation on segment hosts."
     CHILD=1
     for EXT_HOST in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
       for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
