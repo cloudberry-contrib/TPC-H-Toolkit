@@ -117,8 +117,8 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
 
       if [ "${RUN_MODEL}" == "remote" ]; then
         EXT_HOST=$(hostname -I | awk '{print $1}')
-        # Split CLIENT_GEN_PATH into array of paths to support multiple directories
-        IFS=' ' read -ra GEN_PATHS <<< "${CLIENT_GEN_PATH}"       
+        # Split CUSTOM_GEN_PATH into array of paths to support multiple directories
+        IFS=' ' read -ra GEN_PATHS <<< "${CUSTOM_GEN_PATH}"       
         counter=0
         PORT=${GPFDIST_PORT}
         for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
@@ -130,6 +130,40 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
           LOCATION+="gpfdist://${EXT_HOST}:${PORT}/[0-9]*/${table_name}.tbl*"
           let PORT=$PORT+1
           counter=$((counter + 1))
+        done
+        LOCATION+="'"
+      elif [ "${RUN_MODEL}" == "local" ] && [ "${USING_CUSTOM_GEN_PATH_IN_LOCAL_MODE}" == "true" ]; then
+        # Handle local mode with custom CUSTOM_GEN_PATH, but still use segment nodes for data
+        # Handle custom CUSTOM_GEN_PATH in local mode
+        IFS=' ' read -ra GEN_PATHS <<< "${CUSTOM_GEN_PATH}"
+        
+        if [ ${#GEN_PATHS[@]} -eq 0 ]; then
+          log_time "ERROR: CUSTOM_GEN_PATH is empty or not set"
+          exit 1
+        fi
+        
+        # Get segment hosts
+        if [ "${DB_VERSION}" == "gpdb_4_3" ] || [ "${DB_VERSION}" == "gpdb_5" ]; then
+          SQL_QUERY="select distinct g.hostname from gp_segment_configuration g join pg_filespace_entry p on g.dbid = p.fsedbid join pg_tablespace t on t.spcfsoid = p.fsefsoid where g.content >= 0 and g.role = '${GPFDIST_LOCATION}' and t.spcname = 'pg_default' order by 1"
+        else
+          SQL_QUERY="select distinct g.hostname from gp_segment_configuration g where g.content >= 0 and g.role = '${GPFDIST_LOCATION}' order by 1"
+        fi
+
+        flag=10
+        for EXT_HOST in $(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -t -c "${SQL_QUERY}"); do
+          # For each path, start a gpfdist instance
+          for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
+            PORT=$((GPFDIST_PORT + flag))
+            let flag=$flag+1
+            
+            if [ "${counter}" -eq "0" ]; then
+              LOCATION="'"
+            else
+              LOCATION+="', '"
+            fi
+              LOCATION+="gpfdist://${EXT_HOST}:${PORT}/[0-9]*/${table_name}_[0-9]*_[0-9]*.dat"
+              counter=$((counter + 1))
+          done
         done
         LOCATION+="'"
       else
@@ -149,7 +183,7 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
           else
             LOCATION+="', '"
           fi
-          LOCATION+="gpfdist://${EXT_HOST}:${PORT}/${table_name}.tbl.[0-9]*"
+          LOCATION+="gpfdist://${EXT_HOST}:${PORT}/[0-9]*/${table_name}.tbl.[0-9]*"
           counter=$((counter + 1))
         done
         LOCATION+="'"
