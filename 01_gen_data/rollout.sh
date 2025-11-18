@@ -42,21 +42,23 @@ function copy_generate_data() {
 function gen_data() {
   if [ "${USING_CUSTOM_GEN_PATH_IN_LOCAL_MODE}" != "true" ]; then
     log_time "Using default setting as segment data path in local mode on segments."
-    PARALLEL=$(gpstate | grep "Total primary segments" | awk -F '=' '{print $2}')
-    if [ "${PARALLEL}" == "" ]; then
+    TOTAL_PRIMARY=$(gpstate | grep "Total primary segments" | awk -F '=' '{print $2}')
+    if [ "${TOTAL_PRIMARY}" == "" ]; then
       log_time "ERROR: Unable to determine how many primary segments are in the cluster using gpstate."
       exit 1
     fi
-    #Actual PARALLEL should be $GEN_DATA_PARALLEL*$PARALLEL
-    PARALLEL=$((GEN_DATA_PARALLEL * PARALLEL))
-    
-    log_time "Number of Generate Data Parallel Process is: $PARALLEL"
-    
+
     if [ "${VERSION}" == "gpdb_4_3" ] || [ "${VERSION}" == "gpdb_5" ]; then
       SQL_QUERY="select row_number() over(), g.hostname, p.fselocation as path from gp_segment_configuration g join pg_filespace_entry p on g.dbid = p.fsedbid join pg_tablespace t on t.spcfsoid = p.fsefsoid where g.content >= 0 and g.role = '${GPFDIST_LOCATION}' and t.spcname = 'pg_default' order by 1, 2, 3"
     else
       SQL_QUERY="select row_number() over(), g.hostname, g.datadir from gp_segment_configuration g where g.content >= 0 and g.role = '${GPFDIST_LOCATION}' order by 1, 2, 3"
     fi
+
+    log_time "Number of primary segments: ${TOTAL_PRIMARY}"
+    # Calculate total parallel processes
+    # Each path gets GEN_DATA_PARALLEL processes per host
+    PARALLEL=$((TOTAL_PRIMARY * GEN_DATA_PARALLEL))
+    log_time "Total parallel processes: ${PARALLEL} (primary segments: ${TOTAL_PRIMARY} * parallel_per_path: ${GEN_DATA_PARALLEL})"
 
     log_time "Clean up previous data generation folder on segments."
     for h in $(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -t -c "${SQL_QUERY}"); do
