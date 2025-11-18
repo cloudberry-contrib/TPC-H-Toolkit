@@ -33,7 +33,7 @@ function get_count_generate_data() {
     fi
     
     count=$((count + next_count))
-  done < "${TPC_DS_DIR}/segment_hosts.txt"
+  done < "${TPC_H_DIR}/segment_hosts.txt"
   
   # Return calculated result
   echo "${count}"
