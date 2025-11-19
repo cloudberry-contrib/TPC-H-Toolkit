@@ -133,8 +133,8 @@ echo ""·
 file_count=$(get_file_count)
 
 if [ "${file_count}" -ne "${MULTI_USER_COUNT}" ]; then
-	echo "The number of successfully completed sessions is less than expected!"
-	echo "Please review the log files to determine which queries failed."
+	log_time "The number of successfully completed sessions is less than expected!"
+	log_time "Please review the log files to determine which queries failed."
 	exit 1
 fi
 

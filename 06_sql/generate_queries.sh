@@ -35,9 +35,7 @@ for i in $(ls $PWD/queries/*.sql |  xargs -n 1 basename); do
 	id=$(printf %02d $q)
 	file_id="1""$id"
 	filename=${file_id}.${BENCH_ROLE}.${id}.sql
-
-	echo "echo \":EXPLAIN_ANALYZE\" > ${TPC_H_DIR}/06_sql/$filename"
-
+	
 	printf "set role ${BENCH_ROLE};\nset search_path=${DB_SCHEMA_NAME},public;\n" > ${TPC_H_DIR}/06_sql/${filename}
 
 	for o in $(cat ${TPC_H_DIR}/01_gen_data/optimizer.txt); do
@@ -62,7 +60,9 @@ for i in $(ls $PWD/queries/*.sql |  xargs -n 1 basename); do
     fi
 	
 	cd ${TPC_H_DIR}/06_sql/queries
-	log_time "./qgen -d -r ${RNGSEED} -s ${GEN_DATA_SCALE} $q >> ${TPC_H_DIR}/06_sql/$filename"
+	if [ "${LOG_DEBUG}" == "true" ]; then
+	  log_time "./qgen -d -r ${RNGSEED} -s ${GEN_DATA_SCALE} $q >> ${TPC_H_DIR}/06_sql/$filename"
+	fi
 	./qgen -d -r ${RNGSEED} -s ${GEN_DATA_SCALE} $q >> ${TPC_H_DIR}/06_sql/$filename
 	cd ..
 done

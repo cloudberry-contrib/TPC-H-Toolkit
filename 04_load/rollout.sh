@@ -51,7 +51,9 @@ function start_gpfdist() {
         GEN_DATA_PATH="${GEN_DATA_PATH}/hbenchmark"
         PORT=$((GPFDIST_PORT + flag))
         let flag=$flag+1
-        log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~${ADMIN_USER}; ./start_gpfdist.sh $PORT ${GEN_DATA_PATH} ${env_file}'\""
+        if [ "${LOG_DEBUG}" == "true" ]; then
+          log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~${ADMIN_USER}; ./start_gpfdist.sh $PORT ${GEN_DATA_PATH} ${env_file}'\" &"
+        fi
         ssh -n ${EXT_HOST} "bash -c 'cd ~${ADMIN_USER}; ./start_gpfdist.sh $PORT ${GEN_DATA_PATH} ${env_file}'" &
       done
     done
@@ -71,7 +73,9 @@ function start_gpfdist() {
       GEN_DATA_PATH="${GEN_DATA_PATH}/hbenchmark"
       PORT=$((GPFDIST_PORT + flag))
       let flag=$flag+1
-      log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~${ADMIN_USER}; ./start_gpfdist.sh $PORT ${GEN_DATA_PATH} ${env_file}'\""
+      if [ "${LOG_DEBUG}" == "true" ]; then
+        log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~${ADMIN_USER}; ./start_gpfdist.sh $PORT ${GEN_DATA_PATH} ${env_file}'\" &"
+      fi
       ssh -n ${EXT_HOST} "bash -c 'cd ~${ADMIN_USER}; ./start_gpfdist.sh $PORT ${GEN_DATA_PATH} ${env_file}'" &
     done
   fi
