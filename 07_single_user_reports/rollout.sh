@@ -18,9 +18,9 @@ filter="gpdb"
 # Process SQL files in numeric order, using absolute paths
 for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "%f\n" | sort -n); do
   if [ "${LOG_DEBUG}" == "true" ]; then
-    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P ${PWD}/${i} -v report_schema=${report_schema}"
+    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P pager=off -f ${PWD}/${i} -v report_schema=${report_schema}"
   fi
-  psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P "${PWD}/${i}" -v report_schema=${report_schema}
+  psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P pager=off -f "${PWD}/${i}" -v report_schema=${report_schema}
   echo ""
 done
 
