@@ -30,9 +30,9 @@ for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.copy.*.sql" -printf "%f\n"
   logfile="${TPC_H_DIR}/log/rollout_${logstep}.log"
   loadsql="\COPY ${report_schema}.${logstep} FROM '${logfile}' WITH DELIMITER '|';"
   if [ "${LOG_DEBUG}" == "true" ]; then
-    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -a -c \"${loadsql}\""
+    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P pager=off -f \"${loadsql}\""
   fi
-  psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P "${loadsql}"
+  psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P pager=off -f "${loadsql}"
   echo ""
 done
 
