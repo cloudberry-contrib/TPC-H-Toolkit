@@ -98,11 +98,10 @@ function gen_data() {
     for h in $(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -t -c "${SQL_QUERY}"); do
       EXT_HOST=$(echo ${h} | awk -F '|' '{print $2}')
       SEG_DATA_PATH=$(echo ${h} | awk -F '|' '{print $3}' | sed 's#//#/#g')
-      log_time "ssh -n ${EXT_HOST} \"rm -rf ${SEG_DATA_PATH}/hbenchmark\""
-      ssh -n ${EXT_HOST} "rm -rf ${SEG_DATA_PATH}/hbenchmark"
-      log_time "ssh -n ${EXT_HOST} \"mkdir -p ${SEG_DATA_PATH}/hbenchmark/logs\""
-      ssh -n ${EXT_HOST} "mkdir -p ${SEG_DATA_PATH}/hbenchmark/logs"
+      log_time "ssh -n ${EXT_HOST} \"rm -rf ${SEG_DATA_PATH}/hbenchmark; mkdir -p ${SEG_DATA_PATH}/hbenchmark/logs\" &"
+      ssh -n ${EXT_HOST} "rm -rf ${SEG_DATA_PATH}/hbenchmark; mkdir -p ${SEG_DATA_PATH}/hbenchmark/logs" &
     done
+    wait
 
     CHILD=1
     for i in $(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -t -c "${SQL_QUERY}"); do
@@ -115,7 +114,6 @@ function gen_data() {
         CHILD=$((CHILD + 1))
       done
     done
-    wait
   else
     log_time "Using CUSTOM_GEN_PATH in local mode on segments."
 
@@ -136,17 +134,17 @@ function gen_data() {
     # Each path gets GEN_DATA_PARALLEL processes per host
     PARALLEL=$((TOTAL_PATHS * GEN_DATA_PARALLEL * TOTAL_HOSTS))
     log_time "Total parallel processes: ${PARALLEL} (paths: ${TOTAL_PATHS} * parallel_per_path: ${GEN_DATA_PARALLEL} * hosts: ${TOTAL_HOSTS})"
-    log_time "Clean up and prepare data generation folders on segments."
     
+    log_time "Clean up and prepare data generation folders on segments."
     for EXT_HOST in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
       # For each path, start a gpfdist instance
       for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
-        log_time "ssh -n ${EXT_HOST} \"rm -rf ${GEN_DATA_PATH}/hbenchmark\""
-        ssh -n ${EXT_HOST} "rm -rf ${GEN_DATA_PATH}/hbenchmark"
-        log_time "ssh -n ${EXT_HOST} \"mkdir -p ${GEN_DATA_PATH}/hbenchmark/logs\""
-        ssh -n ${EXT_HOST} "mkdir -p ${GEN_DATA_PATH}/hbenchmark/logs"
+        log_time "ssh -n ${EXT_HOST} \"rm -rf ${GEN_DATA_PATH}/hbenchmark; mkdir -p ${GEN_DATA_PATH}/hbenchmark/logs\" &"
+        ssh -n ${EXT_HOST} "rm -rf ${GEN_DATA_PATH}/hbenchmark; mkdir -p ${GEN_DATA_PATH}/hbenchmark/logs" &
       done
     done
+    wait  
+
     log_time "Starting data generation on segment hosts."
     CHILD=1
     for EXT_HOST in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
@@ -159,7 +157,6 @@ function gen_data() {
         done
       done
     done
-    wait
   fi
   log_time "Data generation completed on all segment hosts."
 }
