@@ -14,9 +14,9 @@ filter="gpdb"
 
 function copy_script()
 {
-  echo "copy the start and stop scripts to the segment hosts in the cluster"
+  log_time "copy the start and stop scripts to the segment hosts in the cluster"
   for i in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
-    echo "scp start_gpfdist.sh stop_gpfdist.sh ${i}:"
+    log_time "scp start_gpfdist.sh stop_gpfdist.sh ${i}:"
     scp ${PWD}/start_gpfdist.sh ${PWD}/stop_gpfdist.sh ${i}: &
   done
   wait
@@ -24,7 +24,7 @@ function copy_script()
 
 function stop_gpfdist()
 {
-  echo "stop gpfdist on all ports"
+  log_time "stop gpfdist on all ports"
   for i in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
     ssh -n $i "bash -c 'cd ~/; ./stop_gpfdist.sh'" &
   done

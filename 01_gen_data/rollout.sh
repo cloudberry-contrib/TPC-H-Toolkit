@@ -51,11 +51,26 @@ function kill_orphaned_data_gen() {
 }
 
 function copy_generate_data() {
-  echo "copy generate_data.sh to segment hosts"
+  log_time "RUN_MODEL is LOCAL, proceeding with copying binaries"
+  log_time "copy tpch data generation binary and generate_data.sh to segment hosts"
+  set +e  
+  local ssh_failed=0
   for i in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
-    scp ${PWD}/generate_data.sh ${i}: &
+    scp ${TPC_H_DIR}/01_gen_data/generate_data.sh ${TPC_H_DIR}/00_compile_tpch/dbgen/dbgen ${TPC_H_DIR}/00_compile_tpch/dbgen/dists.dss ${i}: &
+    if [ $? -ne 0 ]; then
+     log_time "Error: Failed to copy data generation binaries to host ${i}"
+     ssh_failed=1
+    fi
   done
   wait
+  # Restore error exit
+  set -e
+  # If any SSH connection failed, exit the program
+  if [ $ssh_failed -eq 1 ]; then
+    log_time "[ERROR] Failed to connect to some segment hosts. Exiting."
+    log_time "Some segment hosts are not reachable, check network connection or try CLOUD mode."
+    exit 1
+  fi
 }
 
 function gen_data() {
