@@ -230,7 +230,7 @@ for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "
               log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -c \"\COPY ${DB_SCHEMA_NAME}.${table_name} FROM PROGRAM 'sed \"s/|$//\" $file' WITH (FORMAT csv, DELIMITER '|', NULL '', ESCAPE E'\\\\\\\\', ENCODING 'LATIN1')\" | grep COPY | awk -F ' ' '{print \$2}'"
             fi
             result=$(
-              psql ${PSQL_OPTIONS} -e -v ON_ERROR_STOP=1 -c "\COPY ${DB_SCHEMA_NAME}.${table_name} FROM PROGRAM 'sed \"s/|$//\" $file' WITH (FORMAT csv, DELIMITER '|', NULL '', ESCAPE E'\\\\', ENCODING 'LATIN1')" | grep COPY | awk -F ' ' '{print $2}'
+              psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -c "\COPY ${DB_SCHEMA_NAME}.${table_name} FROM PROGRAM 'sed \"s/|$//\" $file' WITH (FORMAT csv, DELIMITER '|', NULL '', ESCAPE E'\\\\', ENCODING 'LATIN1')" | grep COPY | awk -F ' ' '{print $2}'
               exit ${PIPESTATUS[0]}
             )
             tuples=$((tuples + result))
@@ -243,7 +243,7 @@ for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "
       if [ "${LOG_DEBUG}" == "true" ]; then
         log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -f ${PWD}/${i} -v DB_EXT_SCHEMA_NAME=\"${DB_EXT_SCHEMA_NAME}\" -v DB_SCHEMA_NAME=\"${DB_SCHEMA_NAME}\" | grep INSERT | awk -F ' ' '{print \$3}'"
       fi
-      tuples=$(psql ${PSQL_OPTIONS} -e -v ON_ERROR_STOP=1 -f ${PWD}/${i} -v DB_EXT_SCHEMA_NAME="${DB_EXT_SCHEMA_NAME}" -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}" | grep INSERT | awk -F ' ' '{print $3}'; exit ${PIPESTATUS[0]})
+      tuples=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -f ${PWD}/${i} -v DB_EXT_SCHEMA_NAME="${DB_EXT_SCHEMA_NAME}" -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}" | grep INSERT | awk -F ' ' '{print $3}'; exit ${PIPESTATUS[0]})
     fi
     print_log ${tuples}
     # Release the token
