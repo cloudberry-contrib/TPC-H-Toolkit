@@ -18,9 +18,9 @@ filter="gpdb"
 # Process SQL files in numeric order, using absolute paths
 for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "%f\n" | sort -n); do
   if [ "${LOG_DEBUG}" == "true" ]; then
-    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -e -f ${PWD}/${i} -v report_schema=${report_schema}"
+    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -f ${PWD}/${i} -v report_schema=${report_schema}"
   fi
-  psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -f "${PWD}/${i}" -v report_schema=${report_schema}
+  psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -f "${PWD}/${i}" -v report_schema=${report_schema}
   echo ""
 done
 
@@ -30,9 +30,9 @@ for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.copy.*.sql" -printf "%f\n"
   logfile="${TPC_H_DIR}/log/rollout_${logstep}.log"
   loadsql="\COPY ${report_schema}.${logstep} FROM '${logfile}' WITH DELIMITER '|';"
   if [ "${LOG_DEBUG}" == "true" ]; then 
-    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -c \"${loadsql}\""
+    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -c \"${loadsql}\""
   fi
-  psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -c "${loadsql}"
+  psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -c "${loadsql}"
   echo ""
 done
 
