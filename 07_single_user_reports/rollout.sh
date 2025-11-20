@@ -21,7 +21,6 @@ for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "
     log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -f ${PWD}/${i} -v report_schema=${report_schema}"
   fi
   psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -f "${PWD}/${i}" -v report_schema=${report_schema} > /dev/null 2>&1
-  echo ""
 done
 
 # Process copy files in numeric order, using absolute paths
@@ -30,16 +29,17 @@ for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.copy.*.sql" -printf "%f\n"
   logfile="${TPC_H_DIR}/log/rollout_${logstep}.log"
   loadsql="\COPY ${report_schema}.${logstep} FROM '${logfile}' WITH DELIMITER '|';"
   if [ "${LOG_DEBUG}" == "true" ]; then 
-    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -c \"${loadsql}\"" > /dev/null 2>&1
+    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -c \"${loadsql}\""
   fi
   psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -c "${loadsql}"
-  echo ""
 done
 
 if [ "${LOG_DEBUG}" == "true" ]; then 
   log_time "psql ${PSQL_OPTIONS} -t -A -c \"select 'analyze ' ||schemaname||'.'||tablename||';' from pg_tables WHERE schemaname = '${report_schema}';\" |xargs -I {} -P 5 psql ${PSQL_OPTIONS} -q -A -c \"{}\""
 fi
-psql ${PSQL_OPTIONS} -t -A -c "select 'analyze ' ||schemaname||'.'||tablename||';' from pg_tables WHERE schemaname = '${report_schema}';" |xargs -I {} -P 5 psql ${PSQL_OPTIONS} -q -A -c "{}" > /dev/null 2>&1
+psql ${PSQL_OPTIONS} -t -A -c "select 'analyze ' ||schemaname||'.'||tablename||';' from pg_tables WHERE schemaname = '${report_schema}';" |xargs -I {} -P 5 psql ${PSQL_OPTIONS} -q -A -c "{}"
+
+
 
 echo "********************************************************************************"
 echo "Generate Data"

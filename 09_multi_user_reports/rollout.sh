@@ -19,7 +19,6 @@ for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "
     log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -P pager=off -f \"${PWD}/${i}\" -v multi_user_report_schema=${multi_user_report_schema}"
   fi
   psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -P pager=off -f "${PWD}/${i}" -v multi_user_report_schema=${multi_user_report_schema} > /dev/null 2>&1
-  echo ""
 done
 
 # Process copy files in numeric order with absolute paths
@@ -29,11 +28,10 @@ for i in $(find "${TPC_H_DIR}/log" -maxdepth 1 -type f -name "rollout_testing_*"
   if [ "${LOG_DEBUG}" == "true" ]; then
     log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -P pager=off -c \"${loadsql}\""
   fi
-  psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -P pager=off -c "${loadsql}" > /dev/null 2>&1
-  echo ""
+  psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -P pager=off -c "${loadsql}"
 done
 
-psql -t -A ${PSQL_OPTIONS} -c "select 'analyze ' ||schemaname||'.'||tablename||';' from pg_tables WHERE schemaname = '${multi_user_report_schema}';" |xargs -I {} -P ${RUN_ANALYZE_PARALLEL} psql -q -A ${PSQL_OPTIONS} -c "{}" > /dev/null 2>&1
+psql -t -A ${PSQL_OPTIONS} -c "select 'analyze ' ||schemaname||'.'||tablename||';' from pg_tables WHERE schemaname = '${multi_user_report_schema}';" |xargs -I {} -P ${RUN_ANALYZE_PARALLEL} psql -q -A ${PSQL_OPTIONS} -c "{}"
 
 # Generate detailed report
 log_time "Generating detailed report"
