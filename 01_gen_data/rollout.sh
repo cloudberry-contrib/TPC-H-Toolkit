@@ -261,12 +261,9 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
       count=$(get_count_generate_data)
     done
   fi
-
+  echo ""
   log_time "Data generation completed on all segment hosts in ${SECONDS} second(s)."
-
-  echo ""
   log_time "Done generating data"
-  echo ""
 fi
 
 print_log
