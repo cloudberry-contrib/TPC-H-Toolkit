@@ -250,7 +250,7 @@ if [ "${DB_CURRENT_USER}" != "${BENCH_ROLE}" ]; then
   
   if [ "${LOG_DEBUG}" == "true" ]; then
     log_time "Grant role ${BENCH_ROLE} to user ${DB_CURRENT_USER}"
-    psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=0 -q -P pager=off -c "${GrantRole}"
+    psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=0 -e -P pager=off -c "${GrantRole}"
   else
     psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=0 -q -P pager=off -c "${GrantRole}" > /dev/null 2>&1
   fi
