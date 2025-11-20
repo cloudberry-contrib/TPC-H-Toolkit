@@ -101,6 +101,5 @@ copy_queries
 copy_tpc
 print_log
 
-log_time "Finished ${step}"
 log_time "Step ${step} finished"
 printf "\n"

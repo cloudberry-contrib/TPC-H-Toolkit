@@ -111,7 +111,5 @@ printf "%-20s %10.1f QphH\n" "QphH@${SF}GB" ${QPHH}
 printf "%-20s %10.2f\n" "Price/kQphH@${SF}GB" ${PRICE_PER_KQPHH}
 printf "\n"
 
-echo "Finished ${step}"
-
 log_time "Step ${step} finished"
 printf "\n"

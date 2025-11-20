@@ -240,6 +240,5 @@ if [ "${DB_CURRENT_USER}" != "${BENCH_ROLE}" ]; then
 
 fi
 
-echo "Finished ${step}"
 log_time "Step ${step} finished"
 printf "\n"

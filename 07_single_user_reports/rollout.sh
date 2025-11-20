@@ -20,7 +20,7 @@ for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "
   if [ "${LOG_DEBUG}" == "true" ]; then
     log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -f ${PWD}/${i} -v report_schema=${report_schema}"
   fi
-  psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -f "${PWD}/${i}" -v report_schema=${report_schema}
+  psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -f "${PWD}/${i}" -v report_schema=${report_schema} > /dev/null 2>&1
   echo ""
 done
 
@@ -30,7 +30,7 @@ for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.copy.*.sql" -printf "%f\n"
   logfile="${TPC_H_DIR}/log/rollout_${logstep}.log"
   loadsql="\COPY ${report_schema}.${logstep} FROM '${logfile}' WITH DELIMITER '|';"
   if [ "${LOG_DEBUG}" == "true" ]; then 
-    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -c \"${loadsql}\""
+    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -c \"${loadsql}\"" > /dev/null 2>&1
   fi
   psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -c "${loadsql}"
   echo ""
@@ -39,7 +39,7 @@ done
 if [ "${LOG_DEBUG}" == "true" ]; then 
   log_time "psql ${PSQL_OPTIONS} -t -A -c \"select 'analyze ' ||schemaname||'.'||tablename||';' from pg_tables WHERE schemaname = '${report_schema}';\" |xargs -I {} -P 5 psql ${PSQL_OPTIONS} -q -A -c \"{}\""
 fi
-psql ${PSQL_OPTIONS} -t -A -c "select 'analyze ' ||schemaname||'.'||tablename||';' from pg_tables WHERE schemaname = '${report_schema}';" |xargs -I {} -P 5 psql ${PSQL_OPTIONS} -q -A -c "{}"
+psql ${PSQL_OPTIONS} -t -A -c "select 'analyze ' ||schemaname||'.'||tablename||';' from pg_tables WHERE schemaname = '${report_schema}';" |xargs -I {} -P 5 psql ${PSQL_OPTIONS} -q -A -c "{}" > /dev/null 2>&1
 
 echo "********************************************************************************"
 echo "Generate Data"
@@ -85,6 +85,5 @@ printf "1 User Queries (seconds)\t\t%d\tFor %d success queries and %d failed que
 echo ""
 echo "********************************************************************************"
 
-echo "Finished ${step}"
 log_time "Step ${step} finished"
 printf "\n"
