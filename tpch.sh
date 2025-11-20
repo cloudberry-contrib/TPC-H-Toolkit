@@ -53,7 +53,9 @@ if [ "${RUN_MODEL}" != "local" ]; then
     exit 1
   fi
   # Check for duplicate directories in CUSTOM_GEN_PATH and remove them
-  log_time "Checking for duplicate directories in CUSTOM_GEN_PATH..."
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "Checking for duplicate directories in CUSTOM_GEN_PATH..."
+  fi
   # Using string method instead of associative array for better compatibility
   declare -a UNIQUE_GEN_PATHS
   duplicates_found=false
@@ -73,19 +75,25 @@ if [ "${RUN_MODEL}" != "local" ]; then
       UNIQUE_GEN_PATHS+=("$path")
     else
       duplicates_found=true
-      log_time "Warning: Duplicate directory found and will be removed: $path"
+      if [ "${LOG_DEBUG}" == "true" ]; then
+        log_time "Warning: Duplicate directory found and will be removed: $path"
+      fi
     fi
   done
   
   if [ "$duplicates_found" = true ]; then
-    log_time "Duplicate directories removed. Using unique paths only."
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      log_time "Duplicate directories removed. Using unique paths only."
+    fi
   fi
   GEN_PATHS=("${UNIQUE_GEN_PATHS[@]}")
   
   # Reconstruct the path string and export
   CUSTOM_GEN_PATH=$(IFS=' '; echo "${GEN_PATHS[*]}")
   export CUSTOM_GEN_PATH
-  log_time "CUSTOM_GEN_PATH set to: ${CUSTOM_GEN_PATH}"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "CUSTOM_GEN_PATH set to: ${CUSTOM_GEN_PATH}"
+  fi
 else
   create_hosts_file
 fi
