@@ -20,25 +20,26 @@ function create_directories()
   fi
 }
 
-################################################################################
-####  Body  ####################################################################
-################################################################################
-create_directories
-
-echo "############################################################################"
-echo "TPC-H Script for PostgreSQL / Cloudberry Database."
-echo "############################################################################"
-echo "All parameter settings:"
-echo "############################################################################"
-
-grep -E '^[[:space:]]*export[[:space:]]+' tpch_variables.sh | grep -v '^[[:space:]]*#' | while read -r line; do
-  var_name=$(echo "$line" | awk '{print $2}' | cut -d= -f1)
-  printf "%s: %s\n" "$var_name" "${!var_name}"
-done
-
-echo "############################################################################"
-echo ""
-
+if [ "${LOG_DEBUG}" == "true" ]; then
+  ################################################################################
+  ####  Body  ####################################################################
+  ################################################################################
+  create_directories
+  
+  echo "############################################################################"
+  echo "TPC-H Script for PostgreSQL / Cloudberry Database."
+  echo "############################################################################"
+  echo "All parameter settings:"
+  echo "############################################################################"
+  
+  grep -E '^[[:space:]]*export[[:space:]]+' tpch_variables.sh | grep -v '^[[:space:]]*#' | while read -r line; do
+    var_name=$(echo "$line" | awk '{print $2}' | cut -d= -f1)
+    printf "%s: %s\n" "$var_name" "${!var_name}"
+  done
+  
+  echo "############################################################################"
+  echo ""
+fi
 # We assume that the flag variable names are consistent with the corresponding directory names
 for i in $(find ${PWD} -maxdepth 1 -type d -name "[0-9]*" | sort -n); do
   # Get just the directory name without the path
