@@ -13,7 +13,9 @@ filter="gpdb"
 
 function copy_script()
 {
-  log_time "copy the start and stop scripts to the segment hosts in the cluster"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "copy the start and stop scripts to the segment hosts in the cluster"
+  fi
   for i in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
     if [ "${LOG_DEBUG}" == "true" ]; then
       log_time "scp start_gpfdist.sh stop_gpfdist.sh ${i}:"
@@ -83,7 +85,9 @@ function start_gpfdist() {
     done
   fi
   wait
-  log_time "gpfdist started on all segment hosts."
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "gpfdist started on all segment hosts."
+  fi
 }
 
 if [ "${RUN_MODEL}" == "remote" ]; then
@@ -177,7 +181,9 @@ elif [ "${RUN_MODEL}" == "local" ]; then
         exit 1
     fi
   else
-    log_time "Using environment file: ${env_file}"
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      log_time "Using environment file: ${env_file}"
+    fi
   fi
   
   copy_script
@@ -278,13 +284,19 @@ if [ "${DB_VERSION}" == "postgresql" ]; then
   psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -f ${PWD}/100.postgresql.indexkeys.sql -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}"
 fi
 
-log_time "Clean up gpfdist"
+if [ "${LOG_DEBUG}" == "true" ]; then
+  log_time "Clean up gpfdist"
+fi
 
 if [ "${RUN_MODEL}" == "remote" ]; then
-  log_time "Clean up gpfdist on client"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "Clean up gpfdist on client"
+  fi
   sh ${PWD}/stop_gpfdist.sh
 elif [ "${RUN_MODEL}" == "local" ]; then
-  log_time "Clean up gpfdist on all segments"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "Clean up gpfdist on all segments"
+  fi
   stop_gpfdist
 fi
 
