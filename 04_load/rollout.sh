@@ -15,7 +15,9 @@ function copy_script()
 {
   log_time "copy the start and stop scripts to the segment hosts in the cluster"
   for i in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
-    log_time "scp start_gpfdist.sh stop_gpfdist.sh ${i}:"
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      log_time "scp start_gpfdist.sh stop_gpfdist.sh ${i}:"
+    fi
     scp ${PWD}/start_gpfdist.sh ${PWD}/stop_gpfdist.sh ${i}: &
   done
   wait
@@ -23,7 +25,9 @@ function copy_script()
 
 function stop_gpfdist()
 {
-  log_time "stop gpfdist on all ports"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "stop gpfdist on all ports"
+  fi
   for i in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
     ssh -n $i "bash -c 'cd ~/; ./stop_gpfdist.sh'" &
   done
@@ -129,7 +133,9 @@ if [ "${RUN_MODEL}" == "remote" ]; then
   for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
     GEN_DATA_PATH="${GEN_DATA_PATH}/hbenchmark"
     PORT=$((GPFDIST_PORT + flag))
-    log_time "Starting gpfdist on port ${PORT} for path: ${GEN_DATA_PATH}"
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      log_time "Starting gpfdist on port ${PORT} for path: ${GEN_DATA_PATH}"
+    fi
     sh ${PWD}/start_gpfdist.sh $PORT "${GEN_DATA_PATH}" ${env_file}
     let flag=$flag+1
   done
@@ -196,6 +202,10 @@ done
 
 schema_name=${DB_SCHEMA_NAME}
 
+log_time "Loading tables in schema ${DB_SCHEMA_NAME} with parallelism ${LOAD_PARALLEL}"
+SECONDS=0
+
+
 for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "%f\n" | sort -n); do
 # Acquire a token to control concurrency
   read -u 5
@@ -209,11 +219,15 @@ for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "
     export table_name
     
     if [ "${TRUNCATE_TABLES}" == "true" ]; then
-      log_time "Truncate table ${DB_SCHEMA_NAME}.${table_name}"
+      if [ "${LOG_DEBUG}" == "true" ]; then
+        log_time "Truncate table ${DB_SCHEMA_NAME}.${table_name}"
+      fi
       psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -c "TRUNCATE TABLE ${DB_SCHEMA_NAME}.${table_name}"
     fi
 
-    log_time "Loading table ${DB_SCHEMA_NAME}.${table_name}"
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      log_time "Loading table ${DB_SCHEMA_NAME}.${table_name}"
+    fi
 
     if [ "${RUN_MODEL}" == "cloud" ]; then
       # Split CUSTOM_GEN_PATH into array of paths
@@ -253,7 +267,7 @@ wait
 # Close the file descriptor
 exec 5>&-
 
-log_time "Finished loading tables."
+log_time "Finished loading tables. Time elapsed: ${SECONDS} seconds."
 
 log_time "Starting post loading processing..."
 

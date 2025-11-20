@@ -12,9 +12,13 @@ log_time "Step ${step} started"
 if [ "${DB_CURRENT_USER}" != "${BENCH_ROLE}" ]; then
   GrantSchemaPrivileges="GRANT ALL PRIVILEGES ON SCHEMA ${DB_SCHEMA_NAME} TO ${BENCH_ROLE}"
   GrantTablePrivileges="GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA ${DB_SCHEMA_NAME} TO ${BENCH_ROLE}"
-  log_time "Grant schema privileges to role ${BENCH_ROLE}"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "Grant schema privileges to role ${BENCH_ROLE}"
+  fi
   psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=0 -q -P pager=off -c "${GrantSchemaPrivileges}"
-  log_time "Grant table privileges to role ${BENCH_ROLE}"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "Grant table privileges to role ${BENCH_ROLE}"
+  fi
   psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=0 -q -P pager=off -c "${GrantTablePrivileges}"
 fi
 
@@ -119,9 +123,13 @@ function generate_templates()
 }
 
 if [ "${RUN_MULTI_USER_QGEN}" = "true" ]; then
-  log_time "Generating query templates for ${MULTI_USER_COUNT} users."
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "Generating query templates for ${MULTI_USER_COUNT} users."
+  fi
   generate_templates
-  log_time "Completed query templates generation for ${MULTI_USER_COUNT} users."
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "Completed query templates generation for ${MULTI_USER_COUNT} users."
+  fi
 fi
 
 for session_id in $(seq 1 ${MULTI_USER_COUNT}); do
