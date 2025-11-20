@@ -100,7 +100,11 @@ fi
 
 # Get a random port for gpfdist
 get_gpfdist_port
-log_time "gpfdist port set to: ${GPFDIST_PORT}"
+
+if [ "${LOG_DEBUG}" == "true" ]; then
+  log_time "gpfdist port set to: ${GPFDIST_PORT}"
+fi
+echo ""
 
 # run the benchmark
 ./rollout.sh
