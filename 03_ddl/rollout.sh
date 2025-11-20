@@ -68,7 +68,6 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
       psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P pager=off -f ${PWD}/${i} -v ACCESS_METHOD="${TABLE_ACCESS_METHOD}" -v STORAGE_OPTIONS="${TABLE_STORAGE_OPTIONS}" -v DISTRIBUTED_BY="${DISTRIBUTED_BY}" -v DB_EXT_SCHEMA_NAME="${DB_EXT_SCHEMA_NAME}" -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}" > /dev/null 2>&1
     fi
     print_log
-    echo ""
   done
   
   # Process partition files in numeric order
@@ -111,7 +110,6 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
         psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -e -A -t -P pager=off -f ${PWD}/${i} -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}" -v ACCESS_METHOD="${TABLE_ACCESS_METHOD}" -v STORAGE_OPTIONS="${TABLE_STORAGE_OPTIONS}" -v DISTRIBUTED_BY="${DISTRIBUTED_BY}" > /dev/null 2>&1
       fi
       print_log
-      echo ""
     done
     log_time "Tpch tables created."
   fi
@@ -204,7 +202,6 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
         psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P pager=off -f ${PWD}/${i} -v LOCATION="${LOCATION}" -v DB_EXT_SCHEMA_NAME="${DB_EXT_SCHEMA_NAME}" -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}" > /dev/null 2>&1
       fi
       print_log
-      echo ""
     done
     log_time "Tpch external tables created."
   fi
