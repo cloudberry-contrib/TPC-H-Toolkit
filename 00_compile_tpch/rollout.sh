@@ -58,10 +58,17 @@ function check_binary() {
   cp -f qgen.${CHIP_TYPE} qgen
   chmod +x dbgen
   chmod +x qgen
-
-  ./dbgen -h
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    ./dbgen -h
+  else
+    ./dbgen -h > /dev/null 2>&1
+  fi
   if [ $? == 1 ]; then 
-    ./qgen -h
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      ./qgen -h
+    else
+      ./qgen -h > /dev/null 2>&1
+    fi
     if [ $? == 0 ]; then
       compile_flag="false" 
     fi

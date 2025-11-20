@@ -23,6 +23,7 @@ fi
 
 if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
   #Create tables
+  log_time "Creating tpch tables."
   for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "%f\n" | sort -n); do
     start_log
     id=$(echo "${i}" | awk -F '.' '{print $1}')
@@ -62,12 +63,14 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
     
     if [ "${LOG_DEBUG}" == "true" ]; then
       log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P pager=off -f ${PWD}/${i} -v ACCESS_METHOD=\"${TABLE_ACCESS_METHOD}\" -v STORAGE_OPTIONS=\"${TABLE_STORAGE_OPTIONS}\" -v DISTRIBUTED_BY=\"${DISTRIBUTED_BY}\" -v DB_EXT_SCHEMA_NAME=\"${DB_EXT_SCHEMA_NAME}\" -v DB_SCHEMA_NAME=\"${DB_SCHEMA_NAME}\""
+      psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P pager=off -f ${PWD}/${i} -v ACCESS_METHOD="${TABLE_ACCESS_METHOD}" -v STORAGE_OPTIONS="${TABLE_STORAGE_OPTIONS}" -v DISTRIBUTED_BY="${DISTRIBUTED_BY}" -v DB_EXT_SCHEMA_NAME="${DB_EXT_SCHEMA_NAME}" -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}"
+    else
+      psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P pager=off -f ${PWD}/${i} -v ACCESS_METHOD="${TABLE_ACCESS_METHOD}" -v STORAGE_OPTIONS="${TABLE_STORAGE_OPTIONS}" -v DISTRIBUTED_BY="${DISTRIBUTED_BY}" -v DB_EXT_SCHEMA_NAME="${DB_EXT_SCHEMA_NAME}" -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}" > /dev/null 2>&1
     fi
-    psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P pager=off -f ${PWD}/${i} -v ACCESS_METHOD="${TABLE_ACCESS_METHOD}" -v STORAGE_OPTIONS="${TABLE_STORAGE_OPTIONS}" -v DISTRIBUTED_BY="${DISTRIBUTED_BY}" -v DB_EXT_SCHEMA_NAME="${DB_EXT_SCHEMA_NAME}" -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}"
     print_log
     echo ""
   done
-
+  
   # Process partition files in numeric order
   if [ "${TABLE_USE_PARTITION}" == "true" ]; then
     for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.partition" -printf "%f\n" | sort -n); do
@@ -103,14 +106,19 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
       
       if [ "${LOG_DEBUG}" == "true" ]; then
         log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -e -A -t -P pager=off -f ${PWD}/${i} -v DB_SCHEMA_NAME=\"${DB_SCHEMA_NAME}\" -v ACCESS_METHOD=\"${TABLE_ACCESS_METHOD}\" -v STORAGE_OPTIONS=\"${TABLE_STORAGE_OPTIONS}\" -v DISTRIBUTED_BY=\"${DISTRIBUTED_BY}\""
+        psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -e -A -t -P pager=off -f ${PWD}/${i} -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}" -v ACCESS_METHOD="${TABLE_ACCESS_METHOD}" -v STORAGE_OPTIONS="${TABLE_STORAGE_OPTIONS}" -v DISTRIBUTED_BY="${DISTRIBUTED_BY}"
+      else
+        psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -e -A -t -P pager=off -f ${PWD}/${i} -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}" -v ACCESS_METHOD="${TABLE_ACCESS_METHOD}" -v STORAGE_OPTIONS="${TABLE_STORAGE_OPTIONS}" -v DISTRIBUTED_BY="${DISTRIBUTED_BY}" > /dev/null 2>&1
       fi
-      psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -e -A -t -P pager=off -f ${PWD}/${i} -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}" -v ACCESS_METHOD="${TABLE_ACCESS_METHOD}" -v STORAGE_OPTIONS="${TABLE_STORAGE_OPTIONS}" -v DISTRIBUTED_BY="${DISTRIBUTED_BY}"
       print_log
       echo ""
     done
+    log_time "Tpch tables created."
   fi
 
   if [ "${RUN_MODEL}" != "cloud" ]; then
+    #Create external tables
+    log_time "Creating tpch external tables for loading data in non-cloud modes."
     for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.ext_tpch.*.sql" -printf "%f\n" | sort -n); do
       start_log
       id=$(echo ${i} | awk -F '.' '{print $1}')
@@ -191,11 +199,14 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
       
       if [ "${LOG_DEBUG}" == "true" ]; then
         log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P pager=off -f ${PWD}/${i} -v LOCATION=\"${LOCATION}\" -v DB_EXT_SCHEMA_NAME=\"${DB_EXT_SCHEMA_NAME}\" -v DB_SCHEMA_NAME=\"${DB_SCHEMA_NAME}\""
+        psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P pager=off -f ${PWD}/${i} -v LOCATION="${LOCATION}" -v DB_EXT_SCHEMA_NAME="${DB_EXT_SCHEMA_NAME}" -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}"      
+      else
+        psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P pager=off -f ${PWD}/${i} -v LOCATION="${LOCATION}" -v DB_EXT_SCHEMA_NAME="${DB_EXT_SCHEMA_NAME}" -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}" > /dev/null 2>&1
       fi
-      psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -e -q -t -P pager=off -f ${PWD}/${i} -v LOCATION="${LOCATION}" -v DB_EXT_SCHEMA_NAME="${DB_EXT_SCHEMA_NAME}" -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}" 
       print_log
       echo ""
     done
+    log_time "Tpch external tables created."
   fi
 fi
 
