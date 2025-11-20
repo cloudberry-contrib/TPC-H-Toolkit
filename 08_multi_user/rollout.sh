@@ -154,7 +154,7 @@ while [ ${running_jobs_count} -gt 0 ]; do
 done
 
 echo ""
-log_time "Multi-user queries completed in ${SECONDS} second(s)."
+log_time "Multi-user queries completed."
 
 file_count=$(get_file_count)
 
