@@ -279,8 +279,10 @@ log_time "Starting post loading processing..."
 
 
 if [ "${DB_VERSION}" == "postgresql" ]; then
-  log_time "Create indexes and keys"
-  log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -f ${PWD}/100.postgresql.indexkeys.sql -v DB_SCHEMA_NAME=\"${DB_SCHEMA_NAME}\""
+  log_time "Create indexes and keys for PostgreSQL."
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -f ${PWD}/100.postgresql.indexkeys.sql -v DB_SCHEMA_NAME=\"${DB_SCHEMA_NAME}\""
+  fi
   psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -f ${PWD}/100.postgresql.indexkeys.sql -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}"
 fi
 
