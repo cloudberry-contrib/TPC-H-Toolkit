@@ -9,7 +9,7 @@ PWD=$(get_pwd ${BASH_SOURCE[0]})
 function create_directories()
 {
   if [ ! -d ${TPC_H_DIR}/log ]; then
-    echo "Creating log directory"
+    log_time "Creating log directory"
     mkdir ${TPC_H_DIR}/log
   else
     # Backup the log folder before running the benchmark
