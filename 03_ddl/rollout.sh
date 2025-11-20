@@ -209,7 +209,9 @@ fi
 
 # Check if current user matches BENCH_ROLE
 if [ "${DB_CURRENT_USER}" != "${BENCH_ROLE}" ]; then
-  log_time "Current user ${DB_CURRENT_USER} does not match BENCH_ROLE ${BENCH_ROLE}."
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "Current user ${DB_CURRENT_USER} does not match BENCH_ROLE ${BENCH_ROLE}."
+  fi
   DropRoleDenp="drop owned by ${BENCH_ROLE} cascade"
   DropRole="DROP ROLE IF EXISTS ${BENCH_ROLE}"
   CreateRole="CREATE ROLE ${BENCH_ROLE}"
@@ -227,24 +229,36 @@ if [ "${DB_CURRENT_USER}" != "${BENCH_ROLE}" ]; then
 
   # Create role if not exists
   if [ "$EXISTS" != "1" ]; then
-    echo "Role ${BENCH_ROLE} does not exist. Creating..."
-    log_time "Creating role ${BENCH_ROLE}"
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      log_time "Role ${BENCH_ROLE} does not exist. Creating..."
+      log_time "Creating role ${BENCH_ROLE}"
+    fi
     psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=0 -q -P pager=off -c "${CreateRole}"
   else
     set +e
-    log_time "Drop role dependencies for ${BENCH_ROLE}"
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      log_time "Drop role dependencies for ${BENCH_ROLE}"
+    fi
     psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=0 -q -P pager=off -c "${DropRoleDenp}"
     set -e
   fi
   
-  log_time "Grant role ${BENCH_ROLE} to user ${DB_CURRENT_USER}"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "Grant role ${BENCH_ROLE} to user ${DB_CURRENT_USER}"
+  fi
   psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=0 -q -P pager=off -c "${GrantRole}"
   
-  log_time "Grant schema privileges to role ${BENCH_ROLE}"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "Grant schema privileges to role ${BENCH_ROLE}"
+  fi
   psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=0 -q -P pager=off -c "${GrantSchemaPrivileges}"
-  log_time "Grant table privileges to role ${BENCH_ROLE}"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "Grant table privileges to role ${BENCH_ROLE}"
+  fi
   psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=0 -q -P pager=off -c "${GrantTablePrivileges}"
-  log_time "Grant table privileges to role ${BENCH_ROLE}"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "Grant table privileges to role ${BENCH_ROLE}"
+  fi
   psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=0 -q -P pager=off -f ${PWD}/GrantTablePrivileges.sql
 
 fi

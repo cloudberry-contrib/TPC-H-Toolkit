@@ -131,7 +131,8 @@ if [ "${RUN_MULTI_USER_QGEN}" = "true" ]; then
     log_time "Completed query templates generation for ${MULTI_USER_COUNT} users."
   fi
 fi
-
+log_time "Starting ${MULTI_USER_COUNT} Troughput test."
+SECONDS=0
 for session_id in $(seq 1 ${MULTI_USER_COUNT}); do
   session_log=${TPC_H_DIR}/log/testing_session_${session_id}.log
   if [ "${LOG_DEBUG}" == "true" ]; then
@@ -141,20 +142,19 @@ for session_id in $(seq 1 ${MULTI_USER_COUNT}); do
 done
 
 #sleep 60
-
 log_time "Now executing ${MULTI_USER_COUNT} multi-users queries. This may take a while."
-seconds=0
+ELAPSED=0
 echo -n "Multi-user query duration: "
 running_jobs_count=$(get_running_jobs_count)
 while [ ${running_jobs_count} -gt 0 ]; do
-  printf "\rMulti-user query duration: ${seconds} second(s)"
+  printf "\rMulti-user query duration: ${ELAPSED} second(s)"
   sleep 15
   running_jobs_count=$(get_running_jobs_count)
-  seconds=$((seconds + 15))
+  ELAPSED=$((ELAPSED + 15))
 done
 
 echo ""
-log_time "Multi-user queries completed."
+log_time "Multi-user queries completed in ${SECONDS} second(s)."
 echo ""·
 
 file_count=$(get_file_count)
