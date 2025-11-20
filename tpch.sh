@@ -26,7 +26,7 @@ print_header
 get_version
 export DB_VERSION=${VERSION}
 export DB_VERSION_FULL=${VERSION_FULL}
-log_time "Current database is:\n${DB_VERSION}"
+log_time "Current database is: ${DB_VERSION}"
 log_time "Current database version is:\n${DB_VERSION_FULL}"
 
 if [ "${DB_CURRENT_USER}" != "${BENCH_ROLE}" ]; then

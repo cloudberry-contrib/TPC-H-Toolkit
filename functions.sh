@@ -59,19 +59,15 @@ function check_admin_user() {
   if [ "${LOG_DEBUG}" == "true" ]; then
     log_time "Ensure ${ADMIN_USER} is executing this script."
   fi
-  echo ""
   if [ "$(whoami)" != "${ADMIN_USER}" ]; then
-    echo "Script must be executed as ${ADMIN_USER}!"
+    log_time "Script must be executed as ${ADMIN_USER}!"
     exit 1
   fi
 }
 
 function print_header() {
-  if [ "${LOG_DEBUG}" == "true" ]; then
-    log_time "ADMIN_USER: ${ADMIN_USER}"
-    log_time "MULTI_USER_COUNT: ${MULTI_USER_COUNT}"
-  fi
-  echo ""
+  log_time "ADMIN_USER: ${ADMIN_USER}"
+  log_time "MULTI_USER_COUNT: ${MULTI_USER_COUNT}"
 }
 
 # we need to declare this outside, otherwise, the declare will wipe out the
