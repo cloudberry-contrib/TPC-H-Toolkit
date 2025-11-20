@@ -202,10 +202,12 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
     fi
 
     PARALLEL=$((TOTAL_PATHS * GEN_DATA_PARALLEL))
-
-    log_time "Number of data generation paths: ${TOTAL_PATHS}"
-    log_time "Parallel processes per path: ${GEN_DATA_PARALLEL}"
-    log_time "Total parallel processes: ${PARALLEL}"      
+    
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      log_time "Number of data generation paths: ${TOTAL_PATHS}"
+      log_time "Parallel processes per path: ${GEN_DATA_PARALLEL}"
+      log_time "Total parallel processes: ${PARALLEL}"
+    fi
 
     # Prepare each data generation path
     for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
