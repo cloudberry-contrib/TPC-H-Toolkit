@@ -13,7 +13,6 @@ TPC_H_DIR=$(get_pwd ${BASH_SOURCE[0]})
 export TPC_H_DIR
 
 log_time "TPC-H test started"
-printf "\n"
 
 log_time "TPC-H toolkit version is: V1.7_dev20251119"
 

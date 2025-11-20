@@ -172,7 +172,6 @@ function gen_data() {
 step="gen_data"
 
 log_time "Step ${step} started"
-printf "\n"
 
 init_log ${step}
 start_log

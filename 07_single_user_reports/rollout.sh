@@ -6,7 +6,6 @@ PWD=$(get_pwd ${BASH_SOURCE[0]})
 step="single_user_reports"
 
 log_time "Step ${step} started"
-printf "\n"
 
 init_log ${step}
 

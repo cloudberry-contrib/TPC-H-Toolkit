@@ -8,7 +8,6 @@ CurrentPath=$(get_pwd ${BASH_SOURCE[0]})
 step="multi_user"
 
 log_time "Step ${step} started"
-printf "\n"
 
 if [ "${DB_CURRENT_USER}" != "${BENCH_ROLE}" ]; then
   GrantSchemaPrivileges="GRANT ALL PRIVILEGES ON SCHEMA ${DB_SCHEMA_NAME} TO ${BENCH_ROLE}"

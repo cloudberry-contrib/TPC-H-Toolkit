@@ -52,12 +52,12 @@ for i in $(find ${PWD} -maxdepth 1 -type d -name "[0-9]*" | sort -n); do
   run_flag=${!flag_name}
 
   if [ "${run_flag}" == "true" ]; then
-    echo "Run ${i}/rollout.sh"
+    log_time "Run ${i}/rollout.sh"
     ${i}/rollout.sh
   elif [ "${run_flag}" == "false" ]; then
-    echo "Skip ${i}/rollout.sh"
+    log_time "Skip ${i}/rollout.sh"
   else
-    echo "Aborting script because ${flag_name} is not properly specified: must be either \"true\" or \"false\"."
+    log_time "Aborting script because ${flag_name} is not properly specified: must be either \"true\" or \"false\"."
     exit 1
   fi
 done
