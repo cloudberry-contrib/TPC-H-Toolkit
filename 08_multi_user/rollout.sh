@@ -155,7 +155,6 @@ done
 
 echo ""
 log_time "Multi-user queries completed in ${SECONDS} second(s)."
-echo ""·
 
 file_count=$(get_file_count)
 
