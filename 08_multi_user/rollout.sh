@@ -90,7 +90,9 @@ function generate_templates()
     rm -f ${sql_dir}/*.sql
   done
   #Create queries
-  log_time "cd ${PWD}/queries"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "cd ${PWD}/queries"
+  fi
   cd ${PWD}/queries
   
   for i in $(seq 1 $MULTI_USER_COUNT); do
