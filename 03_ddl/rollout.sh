@@ -208,7 +208,9 @@ if [ "${DB_CURRENT_USER}" != "${BENCH_ROLE}" ]; then
   GrantRole="GRANT ${BENCH_ROLE} TO ${DB_CURRENT_USER}"
   GrantSchemaPrivileges="GRANT ALL PRIVILEGES ON SCHEMA ${DB_SCHEMA_NAME} TO ${BENCH_ROLE}"
   GrantTablePrivileges="GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA ${DB_SCHEMA_NAME} TO ${BENCH_ROLE}"
-  echo "rm -f ${PWD}/GrantTablePrivileges.sql"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "rm -f ${PWD}/GrantTablePrivileges.sql"
+  fi
   rm -f ${PWD}/GrantTablePrivileges.sql
   psql ${PSQL_OPTIONS} -tc "SELECT format('GRANT ALL PRIVILEGES ON TABLE %I.%I TO %I;', '${DB_SCHEMA_NAME}', tablename, '${BENCH_ROLE}') FROM pg_tables WHERE schemaname='${DB_SCHEMA_NAME}'" > ${PWD}/GrantTablePrivileges.sql
   # Check if role exists in PostgreSQL
