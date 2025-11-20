@@ -42,7 +42,9 @@ function get_count_generate_data() {
 
 
 function kill_orphaned_data_gen() {
-  log_time "kill any orphaned dbgen processes on segment hosts"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "kill any orphaned dbgen processes on segment hosts"
+  fi
   # always return true even if no processes were killed
   for i in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
     ssh ${i} "pkill dbgen" || true &
@@ -51,8 +53,10 @@ function kill_orphaned_data_gen() {
 }
 
 function copy_generate_data() {
-  log_time "RUN_MODEL is LOCAL, proceeding with copying binaries"
-  log_time "copy tpch data generation binary and generate_data.sh to segment hosts"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "RUN_MODEL is LOCAL, proceeding with copying binaries"
+    log_time "copy tpch data generation binary and generate_data.sh to segment hosts"
+  fi
   set +e  
   local ssh_failed=0
   for i in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
@@ -88,13 +92,16 @@ function gen_data() {
       SQL_QUERY="select row_number() over(), g.hostname, g.datadir from gp_segment_configuration g where g.content >= 0 and g.role = '${GPFDIST_LOCATION}' order by 1, 2, 3"
     fi
 
-    log_time "Number of primary segments: ${TOTAL_PRIMARY}"
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      log_time "Number of primary segments: ${TOTAL_PRIMARY}"
+    fi
     # Calculate total parallel processes
     # Each path gets GEN_DATA_PARALLEL processes per host
     PARALLEL=$((TOTAL_PRIMARY * GEN_DATA_PARALLEL))
-    log_time "Total parallel processes: ${PARALLEL} (primary segments: ${TOTAL_PRIMARY} * parallel_per_path: ${GEN_DATA_PARALLEL})"
-
-    log_time "Clean up previous data generation folder on segments."
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      log_time "Total parallel processes: ${PARALLEL} (primary segments: ${TOTAL_PRIMARY} * parallel_per_path: ${GEN_DATA_PARALLEL})"
+      log_time "Clean up previous data generation folder on segments."
+    fi
     for h in $(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -A -t -c "${SQL_QUERY}"); do
       EXT_HOST=$(echo ${h} | awk -F '|' '{print $2}')
       SEG_DATA_PATH=$(echo ${h} | awk -F '|' '{print $3}' | sed 's#//#/#g')
@@ -131,15 +138,19 @@ function gen_data() {
     
     TOTAL_HOSTS=$(wc -l < ${TPC_H_DIR}/segment_hosts.txt)
 
-    log_time "Number of segment hosts: ${TOTAL_HOSTS}"
-    log_time "Number of data generation paths: ${TOTAL_PATHS}"
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      log_time "Number of segment hosts: ${TOTAL_HOSTS}"
+      log_time "Number of data generation paths: ${TOTAL_PATHS}"
+    fi
 
     # Calculate total parallel processes
     # Each path gets GEN_DATA_PARALLEL processes per host
     PARALLEL=$((TOTAL_PATHS * GEN_DATA_PARALLEL * TOTAL_HOSTS))
-    log_time "Total parallel processes: ${PARALLEL} (paths: ${TOTAL_PATHS} * parallel_per_path: ${GEN_DATA_PARALLEL} * hosts: ${TOTAL_HOSTS})"
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      log_time "Total parallel processes: ${PARALLEL} (paths: ${TOTAL_PATHS} * parallel_per_path: ${GEN_DATA_PARALLEL} * hosts: ${TOTAL_HOSTS})"
+      log_time "Clean up and prepare data generation folders on segments."
+    fi
     
-    log_time "Clean up and prepare data generation folders on segments."
     for EXT_HOST in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
       # For each path, start a gpfdist instance
       for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
@@ -166,7 +177,6 @@ function gen_data() {
       done
     done
   fi
-  log_time "Data generation completed on all segment hosts."
 }
 
 step="gen_data"
@@ -179,6 +189,8 @@ schema_name=${DB_VERSION}
 table_name="gen_data"
 
 if [ "${GEN_NEW_DATA}" == "true" ]; then
+  log_time "Start generating data with RUN_MODEL ${RUN_MODEL} with GEN_DATA_SCALE ${GEN_DATA_SCALE}."
+  SECONDS=0
   if [ "${RUN_MODEL}" != "local" ]; then
     
     IFS=' ' read -ra GEN_PATHS <<< "${CUSTOM_GEN_PATH}"
@@ -249,7 +261,9 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
       count=$(get_count_generate_data)
     done
   fi
-    
+
+  log_time "Data generation completed on all segment hosts in ${SECONDS} second(s)."
+
   echo ""
   log_time "Done generating data"
   echo ""
