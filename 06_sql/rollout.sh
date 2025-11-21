@@ -38,7 +38,7 @@ rm -f ${TPC_H_DIR}/log/*single.explain_analyze.log
 if [ "${ON_ERROR_STOP}" == 0 ]; then
   set +e
 fi
-log_time "Starting the Power Test."
+log_time "Running the Power Test...Please wait..."
 SECONDS=0
 
 for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${BENCH_ROLE}.*.sql" -printf "%f\n" | sort -n); do
