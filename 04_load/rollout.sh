@@ -241,7 +241,9 @@ for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "
       
       tuples=0
       for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
-        log_time "Loading data from path: ${GEN_DATA_PATH}"
+        if [ "${LOG_DEBUG}" == "true" ]; then
+          log_time "Loading data from path: ${GEN_DATA_PATH}"
+        fi
         for file in ${GEN_DATA_PATH}/hbenchmark/[0-9]*/${table_name}.tbl.[0-9]*; do
           if [ -e "$file" ]; then
             if [ "${LOG_DEBUG}" == "true" ]; then
