@@ -6,7 +6,6 @@ PWD=$(get_pwd ${BASH_SOURCE[0]})
 step="load"
 
 log_time "Step ${step} started"
-printf "\n"
 
 init_log ${step}
 
@@ -14,9 +13,13 @@ filter="gpdb"
 
 function copy_script()
 {
-  echo "copy the start and stop scripts to the segment hosts in the cluster"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "copy the start and stop scripts to the segment hosts in the cluster"
+  fi
   for i in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
-    echo "scp start_gpfdist.sh stop_gpfdist.sh ${i}:"
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      log_time "scp start_gpfdist.sh stop_gpfdist.sh ${i}:"
+    fi
     scp ${PWD}/start_gpfdist.sh ${PWD}/stop_gpfdist.sh ${i}: &
   done
   wait
@@ -24,7 +27,9 @@ function copy_script()
 
 function stop_gpfdist()
 {
-  echo "stop gpfdist on all ports"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "stop gpfdist on all ports"
+  fi
   for i in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
     ssh -n $i "bash -c 'cd ~/; ./stop_gpfdist.sh'" &
   done
@@ -51,7 +56,9 @@ function start_gpfdist() {
         GEN_DATA_PATH="${GEN_DATA_PATH}/hbenchmark"
         PORT=$((GPFDIST_PORT + flag))
         let flag=$flag+1
-        log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~${ADMIN_USER}; ./start_gpfdist.sh $PORT ${GEN_DATA_PATH} ${env_file}'\""
+        if [ "${LOG_DEBUG}" == "true" ]; then
+          log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~${ADMIN_USER}; ./start_gpfdist.sh $PORT ${GEN_DATA_PATH} ${env_file}'\" &"
+        fi
         ssh -n ${EXT_HOST} "bash -c 'cd ~${ADMIN_USER}; ./start_gpfdist.sh $PORT ${GEN_DATA_PATH} ${env_file}'" &
       done
     done
@@ -71,11 +78,16 @@ function start_gpfdist() {
       GEN_DATA_PATH="${GEN_DATA_PATH}/hbenchmark"
       PORT=$((GPFDIST_PORT + flag))
       let flag=$flag+1
-      log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~${ADMIN_USER}; ./start_gpfdist.sh $PORT ${GEN_DATA_PATH} ${env_file}'\""
+      if [ "${LOG_DEBUG}" == "true" ]; then
+        log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~${ADMIN_USER}; ./start_gpfdist.sh $PORT ${GEN_DATA_PATH} ${env_file}'\" &"
+      fi
       ssh -n ${EXT_HOST} "bash -c 'cd ~${ADMIN_USER}; ./start_gpfdist.sh $PORT ${GEN_DATA_PATH} ${env_file}'" &
     done
   fi
   wait
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "gpfdist started on all segment hosts."
+  fi
 }
 
 if [ "${RUN_MODEL}" == "remote" ]; then
@@ -125,7 +137,9 @@ if [ "${RUN_MODEL}" == "remote" ]; then
   for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
     GEN_DATA_PATH="${GEN_DATA_PATH}/hbenchmark"
     PORT=$((GPFDIST_PORT + flag))
-    log_time "Starting gpfdist on port ${PORT} for path: ${GEN_DATA_PATH}"
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      log_time "Starting gpfdist on port ${PORT} for path: ${GEN_DATA_PATH}"
+    fi
     sh ${PWD}/start_gpfdist.sh $PORT "${GEN_DATA_PATH}" ${env_file}
     let flag=$flag+1
   done
@@ -167,7 +181,9 @@ elif [ "${RUN_MODEL}" == "local" ]; then
         exit 1
     fi
   else
-    log_time "Using environment file: ${env_file}"
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      log_time "Using environment file: ${env_file}"
+    fi
   fi
   
   copy_script
@@ -192,6 +208,10 @@ done
 
 schema_name=${DB_SCHEMA_NAME}
 
+log_time "Loading tables in schema ${DB_SCHEMA_NAME} with parallelism ${LOAD_PARALLEL}"
+SECONDS=0
+
+
 for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "%f\n" | sort -n); do
 # Acquire a token to control concurrency
   read -u 5
@@ -203,10 +223,16 @@ for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "
     export schema_name
     table_name=$(echo "${i}" | awk -F '.' '{print $3}')
     export table_name
-
+    
     if [ "${TRUNCATE_TABLES}" == "true" ]; then
-      log_time "Truncate table ${DB_SCHEMA_NAME}.${table_name}"
-      psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -c "TRUNCATE TABLE ${DB_SCHEMA_NAME}.${table_name}"
+      if [ "${LOG_DEBUG}" == "true" ]; then
+        log_time "Truncate table ${DB_SCHEMA_NAME}.${table_name}"
+      fi
+      psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -c "TRUNCATE TABLE ${DB_SCHEMA_NAME}.${table_name}"
+    fi
+
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      log_time "Loading table ${DB_SCHEMA_NAME}.${table_name}"
     fi
 
     if [ "${RUN_MODEL}" == "cloud" ]; then
@@ -215,10 +241,14 @@ for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "
       
       tuples=0
       for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
-        log_time "Loading data from path: ${GEN_DATA_PATH}"
+        if [ "${LOG_DEBUG}" == "true" ]; then
+          log_time "Loading data from path: ${GEN_DATA_PATH}"
+        fi
         for file in ${GEN_DATA_PATH}/hbenchmark/[0-9]*/${table_name}.tbl.[0-9]*; do
           if [ -e "$file" ]; then
-            log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -c \"\COPY ${DB_SCHEMA_NAME}.${table_name} FROM PROGRAM 'sed \"s/|$//\" $file' WITH (FORMAT csv, DELIMITER '|', NULL '', ESCAPE E'\\\\\\\\', ENCODING 'LATIN1')\" | grep COPY | awk -F ' ' '{print \$2}'"
+            if [ "${LOG_DEBUG}" == "true" ]; then
+              log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -c \"\COPY ${DB_SCHEMA_NAME}.${table_name} FROM PROGRAM 'sed \"s/|$//\" $file' WITH (FORMAT csv, DELIMITER '|', NULL '', ESCAPE E'\\\\\\\\', ENCODING 'LATIN1')\" | grep COPY | awk -F ' ' '{print \$2}'"
+            fi
             result=$(
               psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -c "\COPY ${DB_SCHEMA_NAME}.${table_name} FROM PROGRAM 'sed \"s/|$//\" $file' WITH (FORMAT csv, DELIMITER '|', NULL '', ESCAPE E'\\\\', ENCODING 'LATIN1')" | grep COPY | awk -F ' ' '{print $2}'
               exit ${PIPESTATUS[0]}
@@ -230,7 +260,9 @@ for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "
         done
       done
     else
-      log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -f ${PWD}/${i} -v DB_EXT_SCHEMA_NAME=\"${DB_EXT_SCHEMA_NAME}\" -v DB_SCHEMA_NAME=\"${DB_SCHEMA_NAME}\" | grep INSERT | awk -F ' ' '{print \$3}'"
+      if [ "${LOG_DEBUG}" == "true" ]; then
+        log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -f ${PWD}/${i} -v DB_EXT_SCHEMA_NAME=\"${DB_EXT_SCHEMA_NAME}\" -v DB_SCHEMA_NAME=\"${DB_SCHEMA_NAME}\" | grep INSERT | awk -F ' ' '{print \$3}'"
+      fi
       tuples=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -f ${PWD}/${i} -v DB_EXT_SCHEMA_NAME="${DB_EXT_SCHEMA_NAME}" -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}" | grep INSERT | awk -F ' ' '{print $3}'; exit ${PIPESTATUS[0]})
     fi
     print_log ${tuples}
@@ -243,24 +275,32 @@ wait
 # Close the file descriptor
 exec 5>&-
 
-log_time "Finished loading tables."
+log_time "Finished loading tables. Time elapsed: ${SECONDS} seconds."
 
 log_time "Starting post loading processing..."
 
 
 if [ "${DB_VERSION}" == "postgresql" ]; then
-  log_time "Create indexes and keys"
-  log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -f ${PWD}/100.postgresql.indexkeys.sql -v DB_SCHEMA_NAME=\"${DB_SCHEMA_NAME}\""
+  log_time "Create indexes and keys for PostgreSQL."
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -f ${PWD}/100.postgresql.indexkeys.sql -v DB_SCHEMA_NAME=\"${DB_SCHEMA_NAME}\""
+  fi
   psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -f ${PWD}/100.postgresql.indexkeys.sql -v DB_SCHEMA_NAME="${DB_SCHEMA_NAME}"
 fi
 
-log_time "Clean up gpfdist"
+if [ "${LOG_DEBUG}" == "true" ]; then
+  log_time "Clean up gpfdist"
+fi
 
 if [ "${RUN_MODEL}" == "remote" ]; then
-  log_time "Clean up gpfdist on client"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "Clean up gpfdist on client"
+  fi
   sh ${PWD}/stop_gpfdist.sh
 elif [ "${RUN_MODEL}" == "local" ]; then
-  log_time "Clean up gpfdist on all segments"
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "Clean up gpfdist on all segments"
+  fi
   stop_gpfdist
 fi
 

@@ -6,7 +6,6 @@ PWD=$(get_pwd ${BASH_SOURCE[0]})
 step="score"
 
 log_time "Step ${step} started"
-printf "\n"
 
 init_log ${step}
 
@@ -110,8 +109,6 @@ printf "%-20s %10.1f QphH\n" "Throughput@${SF}GB" ${THROUGHPUT}
 printf "%-20s %10.1f QphH\n" "QphH@${SF}GB" ${QPHH}
 printf "%-20s %10.2f\n" "Price/kQphH@${SF}GB" ${PRICE_PER_KQPHH}
 printf "\n"
-
-echo "Finished ${step}"
 
 log_time "Step ${step} finished"
 printf "\n"

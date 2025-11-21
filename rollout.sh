@@ -9,7 +9,7 @@ PWD=$(get_pwd ${BASH_SOURCE[0]})
 function create_directories()
 {
   if [ ! -d ${TPC_H_DIR}/log ]; then
-    echo "Creating log directory"
+    log_time "Creating log directory"
     mkdir ${TPC_H_DIR}/log
   else
     # Backup the log folder before running the benchmark
@@ -22,23 +22,26 @@ function create_directories()
 
 ################################################################################
 ####  Body  ####################################################################
-################################################################################
+################################################################################  
+  
 create_directories
 
-echo "############################################################################"
-echo "TPC-H Script for PostgreSQL / Cloudberry Database."
-echo "############################################################################"
-echo "All parameter settings:"
-echo "############################################################################"
+if [ "${LOG_DEBUG}" == "true" ]; then
+  echo "############################################################################"
+  echo "TPC-H Script for PostgreSQL / Cloudberry Database."
+  echo "############################################################################"
+  echo "All parameter settings:"
+  echo "############################################################################"
+  
+  grep -E '^[[:space:]]*export[[:space:]]+' tpch_variables.sh | grep -v '^[[:space:]]*#' | while read -r line; do
+    var_name=$(echo "$line" | awk '{print $2}' | cut -d= -f1)
+    printf "%s: %s\n" "$var_name" "${!var_name}"
+  done
+  
+  echo "############################################################################"
 
-grep -E '^[[:space:]]*export[[:space:]]+' tpch_variables.sh | grep -v '^[[:space:]]*#' | while read -r line; do
-  var_name=$(echo "$line" | awk '{print $2}' | cut -d= -f1)
-  printf "%s: %s\n" "$var_name" "${!var_name}"
-done
-
-echo "############################################################################"
+fi
 echo ""
-
 # We assume that the flag variable names are consistent with the corresponding directory names
 for i in $(find ${PWD} -maxdepth 1 -type d -name "[0-9]*" | sort -n); do
   # Get just the directory name without the path
@@ -52,12 +55,12 @@ for i in $(find ${PWD} -maxdepth 1 -type d -name "[0-9]*" | sort -n); do
   run_flag=${!flag_name}
 
   if [ "${run_flag}" == "true" ]; then
-    echo "Run ${i}/rollout.sh"
+    log_time "Run ${i}/rollout.sh"
     ${i}/rollout.sh
   elif [ "${run_flag}" == "false" ]; then
-    echo "Skip ${i}/rollout.sh"
+    log_time "Skip ${i}/rollout.sh"
   else
-    echo "Aborting script because ${flag_name} is not properly specified: must be either \"true\" or \"false\"."
+    log_time "Aborting script because ${flag_name} is not properly specified: must be either \"true\" or \"false\"."
     exit 1
   fi
 done

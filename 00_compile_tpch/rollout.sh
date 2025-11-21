@@ -6,7 +6,6 @@ PWD=$(get_pwd ${BASH_SOURCE[0]})
 step="compile_tpch"
 
 log_time "Step ${step} started"
-printf "\n"
 
 init_log ${step}
 start_log
@@ -41,18 +40,6 @@ function copy_tpc()
   cp ${PWD}/dbgen/dists.dss ../*_sql/queries
   cp ${PWD}/dbgen/dists.dss ../*_multi_user/queries
   cp ${PWD}/dbgen/dists.dss ../*_gen_data/
-  
-  #copy the compiled dsdgen program to the segment nodes when running in LOCAL mode
-  if [ "${RUN_MODEL}" == "local" ]; then
-    echo "copy tpch binaries to segment hosts"
-    echo "RUN_MODEL is LOCAL, proceeding with copying binaries"
-    for i in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
-      scp ${PWD}/dbgen/dbgen ${PWD}/dbgen/dists.dss ${i}: &
-    done
-    wait
-  else
-    echo "RUN_MODEL is not LOCAL, skipping copying binaries"
-  fi
 }
 
 function copy_queries()
@@ -71,10 +58,17 @@ function check_binary() {
   cp -f qgen.${CHIP_TYPE} qgen
   chmod +x dbgen
   chmod +x qgen
-
-  ./dbgen -h
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    ./dbgen -h
+  else
+    ./dbgen -h > /dev/null 2>&1
+  fi
   if [ $? == 1 ]; then 
-    ./qgen -h
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      ./qgen -h
+    else
+      ./qgen -h > /dev/null 2>&1
+    fi
     if [ $? == 0 ]; then
       compile_flag="false" 
     fi
@@ -97,7 +91,7 @@ function check_chip_type() {
   fi
 
   # Print the result for verification
-  echo "Chip type: $CHIP_TYPE"
+  log_time "Chip type: $CHIP_TYPE"
 }
 
 check_chip_type
@@ -106,13 +100,12 @@ check_binary
 if [ "${compile_flag}" == "true" ]; then
   make_tpc
 else
-  echo "Binary works, no compiling needed."
+  log_time "Binary works, no compiling needed."   
 fi
 
 copy_queries
 copy_tpc
 print_log
 
-echo "Finished ${step}"
 log_time "Step ${step} finished"
 printf "\n"

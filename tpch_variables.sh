@@ -89,6 +89,7 @@ export RUN_MULTI_USER_REPORTS="false"
 export RUN_SCORE="false"
 
 # Misc options
+export LOG_DEBUG="false"
 export SINGLE_USER_ITERATIONS="1"
 export EXPLAIN_ANALYZE="false"
 export ENABLE_VECTORIZATION="off"

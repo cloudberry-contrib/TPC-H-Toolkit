@@ -5,7 +5,6 @@ PWD=$(get_pwd ${BASH_SOURCE[0]})
 step="multi_user_reports"
 
 log_time "Step ${step} started"
-printf "\n"
 
 init_log ${step}
 
@@ -15,21 +14,29 @@ multi_user_report_schema="${DB_SCHEMA_NAME}_multi_user_reports"
 
 # Process SQL files in numeric order with absolute paths
 for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "%f\n" | sort -n); do
-  log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -a -f \"${PWD}/${i}\" -v multi_user_report_schema=${multi_user_report_schema}"
-  psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -a -f "${PWD}/${i}" -v multi_user_report_schema=${multi_user_report_schema}
-  echo ""
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -P pager=off -f \"${PWD}/${i}\" -v multi_user_report_schema=${multi_user_report_schema}"
+    psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -e -q -P pager=off -f "${PWD}/${i}" -v multi_user_report_schema=${multi_user_report_schema}
+  else
+    psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -P pager=off -f "${PWD}/${i}" -v multi_user_report_schema=${multi_user_report_schema} > /dev/null 2>&1
+  fi
+  
 done
 
 # Process copy files in numeric order with absolute paths
 for i in $(find "${TPC_H_DIR}/log" -maxdepth 1 -type f -name "rollout_testing_*" -printf "%f\n" | sort -n); do
   logfile="${TPC_H_DIR}/log/${i}"
   loadsql="\COPY ${multi_user_report_schema}.sql FROM '${logfile}' WITH DELIMITER '|';"
-  log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -a -c \"${loadsql}\""
-  psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -a -c "${loadsql}"
-  echo ""
+  if [ "${LOG_DEBUG}" == "true" ]; then
+    log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -P pager=off -c \"${loadsql}\""
+    psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -e -A -P pager=off -c "${loadsql}"
+  else
+    psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -P pager=off -c "${loadsql}"
+  fi
+  
 done
 
-psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -t -A -c "select 'analyze ' || n.nspname || '.' || c.relname || ';' from pg_class c join pg_namespace n on n.oid = c.relnamespace and n.nspname = '${multi_user_report_schema}'" | psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -t -A -e
+psql -t -A ${PSQL_OPTIONS} -c "select 'analyze ' ||schemaname||'.'||tablename||';' from pg_tables WHERE schemaname = '${multi_user_report_schema}';" |xargs -I {} -P ${RUN_ANALYZE_PARALLEL} psql -q -A ${PSQL_OPTIONS} -c "{}"
 
 # Generate detailed report
 log_time "Generating detailed report"
