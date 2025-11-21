@@ -16,8 +16,11 @@ multi_user_report_schema="${DB_SCHEMA_NAME}_multi_user_reports"
 for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "%f\n" | sort -n); do
   if [ "${LOG_DEBUG}" == "true" ]; then
     log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -P pager=off -f \"${PWD}/${i}\" -v multi_user_report_schema=${multi_user_report_schema}"
+    psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -e -q -P pager=off -f "${PWD}/${i}" -v multi_user_report_schema=${multi_user_report_schema}
+  else
+    psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -P pager=off -f "${PWD}/${i}" -v multi_user_report_schema=${multi_user_report_schema} > /dev/null 2>&1
   fi
-  psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -P pager=off -f "${PWD}/${i}" -v multi_user_report_schema=${multi_user_report_schema} > /dev/null 2>&1
+  
 done
 
 # Process copy files in numeric order with absolute paths
@@ -26,8 +29,11 @@ for i in $(find "${TPC_H_DIR}/log" -maxdepth 1 -type f -name "rollout_testing_*"
   loadsql="\COPY ${multi_user_report_schema}.sql FROM '${logfile}' WITH DELIMITER '|';"
   if [ "${LOG_DEBUG}" == "true" ]; then
     log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -P pager=off -c \"${loadsql}\""
+    psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -e -A -P pager=off -c "${loadsql}"
+  else
+    psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -P pager=off -c "${loadsql}"
   fi
-  psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -A -q -P pager=off -c "${loadsql}"
+  
 done
 
 psql -t -A ${PSQL_OPTIONS} -c "select 'analyze ' ||schemaname||'.'||tablename||';' from pg_tables WHERE schemaname = '${multi_user_report_schema}';" |xargs -I {} -P ${RUN_ANALYZE_PARALLEL} psql -q -A ${PSQL_OPTIONS} -c "{}"
