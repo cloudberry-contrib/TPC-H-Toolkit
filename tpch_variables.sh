@@ -70,6 +70,9 @@ export RUN_ANALYZE_PARALLEL="5"
 export RUN_SQL="true"
 ## Set to true to generate queries for the TPC-DS benchmark.
 export RUN_QGEN="true"
+## Set to true to generate queries for the TPC-DS benchmark with a specific seed "2016032410" to grantee the same query generated for all tests.
+## Set to false to generate queries with a seed when data loading finishes.
+export UNIFY_QGEN_SEED="true"
 #set wait time between each query execution
 export QUERY_INTERVAL="0"
 #Set to 1 if you want to stop when error occurs
