@@ -1,0 +1,1 @@
+COPY :DB_SCHEMA_NAME.orders FROM :filename WITH DELIMITER '|' NULL '';

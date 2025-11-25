@@ -1,0 +1,1 @@
+COPY :DB_SCHEMA_NAME.customer FROM :filename WITH DELIMITER '|' NULL '';

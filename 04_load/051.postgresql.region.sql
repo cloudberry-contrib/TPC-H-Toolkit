@@ -1,0 +1,1 @@
+COPY :DB_SCHEMA_NAME.region FROM :filename WITH DELIMITER '|' NULL '';
