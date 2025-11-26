@@ -252,7 +252,7 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
       printf "\rGenerating data duration: ${seconds} second(s)"
       sleep 5
       seconds=$((seconds + 5))
-      count=$(ps -ef |grep -v grep |grep "generate_data.sh"|wc -l || true)
+      count=$(ps -ef |grep -v grep |grep "generate_data.sh"|grep -i "${GEN_PATH_NAME}"|wc -l || true)
     done
   else
     kill_orphaned_data_gen
