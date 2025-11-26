@@ -252,7 +252,13 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
       printf "\rGenerating data duration: ${seconds} second(s)"
       sleep 5
       seconds=$((seconds + 5))
+      # Record start time before calling the ps command
+      start_time=$(date +%s)
       count=$(ps -ef |grep -v grep |grep "generate_hdata.sh"|grep -i "${GEN_PATH_NAME}"|wc -l || true)
+      # Calculate command execution time and add to total seconds
+      end_time=$(date +%s)
+      command_duration=$((end_time - start_time))
+      seconds=$((seconds + command_duration))
     done
   else
     kill_orphaned_data_gen
@@ -266,7 +272,13 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
       printf "\rGenerating data duration: ${seconds} second(s)"
       sleep 5
       seconds=$((seconds + 5))
+      # Record start time before calling the function
+      start_time=$(date +%s)
       count=$(get_count_generate_data)
+      # Calculate function execution time and add to total seconds
+      end_time=$(date +%s)
+      function_duration=$((end_time - start_time))
+      seconds=$((seconds + function_duration))
     done
   fi
   echo ""
