@@ -148,9 +148,14 @@ echo -n "Multi-user query duration: "
 running_jobs_count=${MULTI_USER_COUNT}
 while [ ${running_jobs_count} -gt 0 ]; do
   printf "\rMulti-user query duration: ${ELAPSED} second(s)"
+  # Record start time before calling the function
+  start_time=$(date +%s)
   sleep 15
   running_jobs_count=$(get_running_jobs_count)
-  ELAPSED=$((ELAPSED + 15))
+  # Calculate function execution time and add to total elapsed time
+  end_time=$(date +%s)
+  function_duration=$((end_time - start_time))
+  ELAPSED=$((ELAPSED + function_duration))
 done
 
 echo ""

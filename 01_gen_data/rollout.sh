@@ -250,10 +250,9 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
     echo -ne "Generating data duration: "
     while [ "$count" -gt "0" ]; do
       printf "\rGenerating data duration: ${seconds} second(s)"
-      sleep 5
-      seconds=$((seconds + 5))
       # Record start time before calling the ps command
       start_time=$(date +%s)
+      sleep 5
       count=$(ps -ef |grep -v grep |grep "generate_hdata.sh"|grep -i "${GEN_PATH_NAME}"|wc -l || true)
       # Calculate command execution time and add to total seconds
       end_time=$(date +%s)
@@ -270,10 +269,9 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
     echo -ne "Generating data duration: "
     while [ "$count" -gt "0" ]; do
       printf "\rGenerating data duration: ${seconds} second(s)"
-      sleep 5
-      seconds=$((seconds + 5))
       # Record start time before calling the function
       start_time=$(date +%s)
+      sleep 5
       count=$(get_count_generate_data)
       # Calculate function execution time and add to total seconds
       end_time=$(date +%s)
