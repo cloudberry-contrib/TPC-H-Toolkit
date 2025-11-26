@@ -31,7 +31,7 @@ function stop_gpfdist()
     log_time "stop gpfdist on all ports"
   fi
   for i in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
-    ssh -n $i "bash -c 'cd ~/; ./stop_gpfdist.sh'" &
+    ssh -n $i "bash -c 'cd ~/; ./stop_gpfdist.sh ${GEN_PATH_NAME}'" &
   done
   wait
 }
@@ -53,7 +53,7 @@ function start_gpfdist() {
     for EXT_HOST in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
       # For each path, start a gpfdist instance
       for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
-        GEN_DATA_PATH="${GEN_DATA_PATH}/hbenchmark"
+        GEN_DATA_PATH="${GEN_DATA_PATH}/${GEN_PATH_NAME}"
         PORT=$((GPFDIST_PORT + flag))
         let flag=$flag+1
         if [ "${LOG_DEBUG}" == "true" ]; then
@@ -75,7 +75,7 @@ function start_gpfdist() {
       CHILD=$(echo ${i} | awk -F '|' '{print $1}')
       EXT_HOST=$(echo ${i} | awk -F '|' '{print $2}')
       GEN_DATA_PATH=$(echo ${i} | awk -F '|' '{print $3}'| sed 's#//#/#g')
-      GEN_DATA_PATH="${GEN_DATA_PATH}/hbenchmark"
+      GEN_DATA_PATH="${GEN_DATA_PATH}/${GEN_PATH_NAME}"
       PORT=$((GPFDIST_PORT + flag))
       let flag=$flag+1
       if [ "${LOG_DEBUG}" == "true" ]; then
@@ -135,7 +135,7 @@ if [ "${RUN_MODEL}" == "remote" ]; then
   # Start gpfdist for each data path with different ports
   flag=10
   for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
-    GEN_DATA_PATH="${GEN_DATA_PATH}/hbenchmark"
+    GEN_DATA_PATH="${GEN_DATA_PATH}/${GEN_PATH_NAME}"
     PORT=$((GPFDIST_PORT + flag))
     if [ "${LOG_DEBUG}" == "true" ]; then
       log_time "Starting gpfdist on port ${PORT} for path: ${GEN_DATA_PATH}"
@@ -244,7 +244,7 @@ for i in $(find "${PWD}" -maxdepth 1 -type f -name "*.${filter}.*.sql" -printf "
         if [ "${LOG_DEBUG}" == "true" ]; then
           log_time "Loading data from path: ${GEN_DATA_PATH}"
         fi
-        for file in ${GEN_DATA_PATH}/hbenchmark/[0-9]*/${table_name}.tbl.[0-9]*; do
+        for file in ${GEN_DATA_PATH}/${GEN_PATH_NAME}/[0-9]*/${table_name}.tbl.[0-9]*; do
           if [ -e "$file" ]; then
             if [ "${LOG_DEBUG}" == "true" ]; then
               log_time "psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -c \"\COPY ${DB_SCHEMA_NAME}.${table_name} FROM PROGRAM 'sed \"s/|$//\" $file' WITH (FORMAT csv, DELIMITER '|', NULL '', ESCAPE E'\\\\\\\\', ENCODING 'LATIN1')\" | grep COPY | awk -F ' ' '{print \$2}'"
@@ -296,7 +296,7 @@ if [ "${RUN_MODEL}" == "remote" ]; then
   if [ "${LOG_DEBUG}" == "true" ]; then
     log_time "Clean up gpfdist on client"
   fi
-  sh ${PWD}/stop_gpfdist.sh
+  sh ${PWD}/stop_gpfdist.sh ${GEN_PATH_NAME}
 elif [ "${RUN_MODEL}" == "local" ]; then
   if [ "${LOG_DEBUG}" == "true" ]; then
     log_time "Clean up gpfdist on all segments"

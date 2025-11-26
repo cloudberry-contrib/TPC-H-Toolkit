@@ -23,7 +23,7 @@ function get_count_generate_data() {
   while read -r i; do
     # Set reasonable connection timeout to avoid infinite waiting
     # Use -n option instead of -f to ensure command completes
-    next_count=$(ssh -o ConnectTimeout=10 -o LogLevel=quiet -n ${i} "bash -c 'ps -ef | grep generate_data.sh | grep -v grep | wc -l'" 2>/dev/null)
+    next_count=$(ssh -o ConnectTimeout=10 -o LogLevel=quiet -n ${i} "bash -c 'ps -ef | grep generate_hdata.sh | grep -i \"${GEN_PATH_NAME}\" | grep -v grep | wc -l'" 2>/dev/null)
     
     # Check if it's a valid number, default to 0 if not
     check="^[0-9]+$"
@@ -55,12 +55,12 @@ function kill_orphaned_data_gen() {
 function copy_generate_data() {
   if [ "${LOG_DEBUG}" == "true" ]; then
     log_time "RUN_MODEL is LOCAL, proceeding with copying binaries"
-    log_time "copy tpch data generation binary and generate_data.sh to segment hosts"
+    log_time "copy tpch data generation binary and generate_hdata.sh to segment hosts"
   fi
   set +e  
   local ssh_failed=0
   for i in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
-    scp ${TPC_H_DIR}/01_gen_data/generate_data.sh ${TPC_H_DIR}/00_compile_tpch/dbgen/dbgen ${TPC_H_DIR}/00_compile_tpch/dbgen/dists.dss ${i}: &
+    scp ${TPC_H_DIR}/01_gen_data/generate_hdata.sh ${TPC_H_DIR}/00_compile_tpch/dbgen/dbgen ${TPC_H_DIR}/00_compile_tpch/dbgen/dists.dss ${i}: &
     if [ $? -ne 0 ]; then
      log_time "Error: Failed to copy data generation binaries to host ${i}"
      ssh_failed=1
@@ -106,9 +106,9 @@ function gen_data() {
       EXT_HOST=$(echo ${h} | awk -F '|' '{print $2}')
       SEG_DATA_PATH=$(echo ${h} | awk -F '|' '{print $3}' | sed 's#//#/#g')
       if [ "${LOG_DEBUG}" == "true" ]; then
-        log_time "ssh -n ${EXT_HOST} \"rm -rf ${SEG_DATA_PATH}/hbenchmark; mkdir -p ${SEG_DATA_PATH}/hbenchmark/logs\" &"
+        log_time "ssh -n ${EXT_HOST} \"rm -rf ${SEG_DATA_PATH}/${GEN_PATH_NAME}; mkdir -p ${SEG_DATA_PATH}/${GEN_PATH_NAME}/logs\" &"
       fi
-      ssh -n ${EXT_HOST} "rm -rf ${SEG_DATA_PATH}/hbenchmark; mkdir -p ${SEG_DATA_PATH}/hbenchmark/logs" &
+      ssh -n ${EXT_HOST} "rm -rf ${SEG_DATA_PATH}/${GEN_PATH_NAME}; mkdir -p ${SEG_DATA_PATH}/${GEN_PATH_NAME}/logs" &
     done
     wait
 
@@ -117,11 +117,11 @@ function gen_data() {
       EXT_HOST=$(echo ${i} | awk -F '|' '{print $2}')
       SEG_DATA_PATH=$(echo ${i} | awk -F '|' '{print $3}' | sed 's#//#/#g')
       for ((j=1; j<=GEN_DATA_PARALLEL; j++)); do
-        GEN_DATA_PATH="${SEG_DATA_PATH}/hbenchmark/${CHILD}"
+        GEN_DATA_PATH="${SEG_DATA_PATH}/${GEN_PATH_NAME}/${CHILD}"
         if [ "${LOG_DEBUG}" == "true" ]; then
-          log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~/; ./generate_data.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_PATH} > ${SEG_DATA_PATH}/hbenchmark/logs/tpch.generate_data.${CHILD}.log 2>&1 &'\""
+          log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~/; ./generate_hdata.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_PATH} > ${SEG_DATA_PATH}/${GEN_PATH_NAME}/logs/tpch.generate_data.${CHILD}.log 2>&1 &'\""
         fi
-        ssh -n ${EXT_HOST} "bash -c 'cd ~/; ./generate_data.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_PATH} > ${SEG_DATA_PATH}/hbenchmark/logs/tpch.generate_data.${CHILD}.log 2>&1 &'" &
+        ssh -n ${EXT_HOST} "bash -c 'cd ~/; ./generate_hdata.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_PATH} > ${SEG_DATA_PATH}/${GEN_PATH_NAME}/logs/tpch.generate_data.${CHILD}.log 2>&1 &'" &
         CHILD=$((CHILD + 1))
       done
     done
@@ -155,9 +155,9 @@ function gen_data() {
       # For each path, start a gpfdist instance
       for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
         if [ "${LOG_DEBUG}" == "true" ]; then
-          log_time "ssh -n ${EXT_HOST} \"rm -rf ${GEN_DATA_PATH}/hbenchmark; mkdir -p ${GEN_DATA_PATH}/hbenchmark/logs\" &"
+          log_time "ssh -n ${EXT_HOST} \"rm -rf ${GEN_DATA_PATH}/${GEN_PATH_NAME}; mkdir -p ${GEN_DATA_PATH}/${GEN_PATH_NAME}/logs\" &"
         fi
-        ssh -n ${EXT_HOST} "rm -rf ${GEN_DATA_PATH}/hbenchmark; mkdir -p ${GEN_DATA_PATH}/hbenchmark/logs" &
+        ssh -n ${EXT_HOST} "rm -rf ${GEN_DATA_PATH}/${GEN_PATH_NAME}; mkdir -p ${GEN_DATA_PATH}/${GEN_PATH_NAME}/logs" &
       done
     done
     wait  
@@ -167,11 +167,11 @@ function gen_data() {
     for EXT_HOST in $(cat ${TPC_H_DIR}/segment_hosts.txt); do
       for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
         for ((j=1; j<=GEN_DATA_PARALLEL; j++)); do
-          GEN_DATA_SUBPATH="${GEN_DATA_PATH}/hbenchmark/${CHILD}"
+          GEN_DATA_SUBPATH="${GEN_DATA_PATH}/${GEN_PATH_NAME}/${CHILD}"
           if [ "${LOG_DEBUG}" == "true" ]; then
-            log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~/; ./generate_data.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_SUBPATH} > ${GEN_DATA_PATH}/hbenchmark/logs/tpch.generate_data.${CHILD}.log 2>&1 &'\""
+            log_time "ssh -n ${EXT_HOST} \"bash -c 'cd ~/; ./generate_hdata.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_SUBPATH} > ${GEN_DATA_PATH}/${GEN_PATH_NAME}/logs/tpch.generate_data.${CHILD}.log 2>&1 &'\""
           fi
-          ssh -n ${EXT_HOST} "bash -c 'cd ~/; ./generate_data.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_SUBPATH} > ${GEN_DATA_PATH}/hbenchmark/logs/tpch.generate_data.${CHILD}.log 2>&1 &'" &
+          ssh -n ${EXT_HOST} "bash -c 'cd ~/; ./generate_hdata.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_SUBPATH} > ${GEN_DATA_PATH}/${GEN_PATH_NAME}/logs/tpch.generate_data.${CHILD}.log 2>&1 &'" &
           CHILD=$((CHILD + 1))
         done
       done
@@ -213,54 +213,70 @@ if [ "${GEN_NEW_DATA}" == "true" ]; then
     for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
       if [[ ! -d "${GEN_DATA_PATH}" && ! -L "${GEN_DATA_PATH}" ]]; then
         if [ "${LOG_DEBUG}" == "true" ]; then
-          log_time "mkdir ${GEN_DATA_PATH}/hbenchmark"
+          log_time "mkdir ${GEN_DATA_PATH}/${GEN_PATH_NAME}"
         fi
-        mkdir -p ${GEN_DATA_PATH}/hbenchmark
+        mkdir -p ${GEN_DATA_PATH}/${GEN_PATH_NAME}
       fi
       if [ "${LOG_DEBUG}" == "true" ]; then
-        log_time "rm -rf ${GEN_DATA_PATH}/hbenchmark/*"
+        log_time "rm -rf ${GEN_DATA_PATH}/${GEN_PATH_NAME}/*"
       fi
-      rm -rf ${GEN_DATA_PATH}/hbenchmark/*
+      rm -rf ${GEN_DATA_PATH}/${GEN_PATH_NAME}/*
       if [ "${LOG_DEBUG}" == "true" ]; then
-        log_time "mkdir -p ${GEN_DATA_PATH}/hbenchmark/logs"
+        log_time "mkdir -p ${GEN_DATA_PATH}/${GEN_PATH_NAME}/logs"
       fi
-      mkdir -p ${GEN_DATA_PATH}/hbenchmark/logs
+      mkdir -p ${GEN_DATA_PATH}/${GEN_PATH_NAME}/logs
     done
 
     CHILD=1    
     for GEN_DATA_PATH in "${GEN_PATHS[@]}"; do
       for ((j=1; j<=GEN_DATA_PARALLEL; j++)); do
-        GEN_DATA_SUBPATH="${GEN_DATA_PATH}/hbenchmark/${CHILD}"
+        GEN_DATA_SUBPATH="${GEN_DATA_PATH}/${GEN_PATH_NAME}/${CHILD}"
         if [ "${LOG_DEBUG}" == "true" ]; then
-          log_time "sh ${TPC_H_DIR}/01_gen_data/generate_data.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_SUBPATH} > ${GEN_DATA_PATH}/hbenchmark/logs/tpch.generate_data.${CHILD}.log 2>&1 &"
+          log_time "sh ${TPC_H_DIR}/01_gen_data/generate_hdata.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_SUBPATH} > ${GEN_DATA_PATH}/${GEN_PATH_NAME}/logs/tpch.generate_data.${CHILD}.log 2>&1 &"
         fi
-        sh ${TPC_H_DIR}/01_gen_data/generate_data.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_SUBPATH} > ${GEN_DATA_PATH}/hbenchmark/logs/tpch.generate_data.${CHILD}.log 2>&1 &
+        sh ${TPC_H_DIR}/01_gen_data/generate_hdata.sh ${GEN_DATA_SCALE} ${CHILD} ${PARALLEL} ${GEN_DATA_SUBPATH} > ${GEN_DATA_PATH}/${GEN_PATH_NAME}/logs/tpch.generate_data.${CHILD}.log 2>&1 &
         CHILD=$((CHILD + 1))
       done
     done
     log_time "Now generating data...This may take a while."
-    count=$(ps -ef |grep -v grep |grep "generate_data.sh"|wc -l || true)
+    count=${PARALLEL}
+    
+    if [ "${LOG_DEBUG}" == "true" ]; then
+      log_time "ps -ef |grep -v grep |grep \"generate_hdata.sh\"|grep -i \"${GEN_PATH_NAME}\"|wc -l || true"
+      log_time "Number of generate_hdata.sh processes: ${count}"
+    fi
+    
     seconds=0
     echo -ne "Generating data duration: "
     while [ "$count" -gt "0" ]; do
       printf "\rGenerating data duration: ${seconds} second(s)"
+      # Record start time before calling the ps command
+      start_time=$(date +%s)
       sleep 5
-      seconds=$((seconds + 5))
-      count=$(ps -ef |grep -v grep |grep "generate_data.sh"|wc -l || true)
+      count=$(ps -ef |grep -v grep |grep "generate_hdata.sh"|grep -i "${GEN_PATH_NAME}"|wc -l || true)
+      # Calculate command execution time and add to total seconds
+      end_time=$(date +%s)
+      command_duration=$((end_time - start_time))
+      seconds=$((seconds + command_duration))
     done
   else
     kill_orphaned_data_gen
     copy_generate_data
     gen_data
     log_time "Now generating data...This may take a while."
-    count=$(get_count_generate_data)
+    count=${PARALLEL}
     seconds=0
     echo -ne "Generating data duration: "
     while [ "$count" -gt "0" ]; do
       printf "\rGenerating data duration: ${seconds} second(s)"
+      # Record start time before calling the function
+      start_time=$(date +%s)
       sleep 5
-      seconds=$((seconds + 5))
       count=$(get_count_generate_data)
+      # Calculate function execution time and add to total seconds
+      end_time=$(date +%s)
+      function_duration=$((end_time - start_time))
+      seconds=$((seconds + function_duration))
     done
   fi
   echo ""

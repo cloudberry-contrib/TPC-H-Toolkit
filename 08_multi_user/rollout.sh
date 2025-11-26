@@ -49,7 +49,7 @@ function get_psql_count()
 }
 
 function get_running_jobs_count() {
-  job_count=$(ps -fu "${ADMIN_USER}" |grep -v grep |grep "08_multi_user/test.sh"|wc -l || true)
+  job_count=$(ps -fu "${ADMIN_USER}" |grep -v grep |grep -i "${TPC_H_DIR}/08_multi_user/test.sh"|wc -l || true)
   echo "${job_count}"
 }
 
@@ -145,12 +145,17 @@ done
 log_time "Now executing ${MULTI_USER_COUNT} multi-users queries. This may take a while."
 ELAPSED=0
 echo -n "Multi-user query duration: "
-running_jobs_count=$(get_running_jobs_count)
+running_jobs_count=${MULTI_USER_COUNT}
 while [ ${running_jobs_count} -gt 0 ]; do
   printf "\rMulti-user query duration: ${ELAPSED} second(s)"
+  # Record start time before calling the function
+  start_time=$(date +%s)
   sleep 15
   running_jobs_count=$(get_running_jobs_count)
-  ELAPSED=$((ELAPSED + 15))
+  # Calculate function execution time and add to total elapsed time
+  end_time=$(date +%s)
+  function_duration=$((end_time - start_time))
+  ELAPSED=$((ELAPSED + function_duration))
 done
 
 echo ""

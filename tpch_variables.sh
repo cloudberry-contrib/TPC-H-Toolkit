@@ -1,15 +1,8 @@
 # environment options
-
 ## ADMIN_USER should be set to the OS user that executes this toolkit
 export ADMIN_USER="gpadmin"
 ## BENCH_ROLE should be set to the database user that will be used to run the benchmark
 export BENCH_ROLE="hbench"
-## DB_SCHEMA_NAME should be set to the database schema that will be used to store the TPC-H tables
-export DB_SCHEMA_NAME="tpch"
-
-## Set to "local" to run the benchmark on the COORDINATOR host or "cloud" to run the benchmark from a remote client.
-export RUN_MODEL="local"
-
 ## Configure the host/port/user to connect to the cluster running the test. Can be left empty when all variables are set for the $ADMIN_USER
 ## Database user defined in this variable with '-U' will be the user to connect to the database, better to be the same with $BENCH_ROLE
 ## Database user to run this benchmark, should have enough permissions, better to use supper user.
@@ -19,6 +12,11 @@ export PSQL_OPTIONS=""
 # benchmark options
 export GEN_DATA_SCALE="1"
 export MULTI_USER_COUNT="2"
+## Set to "local" to run the benchmark on the COORDINATOR host or "cloud" to run the benchmark from a remote client.
+export RUN_MODEL="local"
+## DB_SCHEMA_NAME should be set to the database schema that will be used to store the TPC-H tables
+export DB_SCHEMA_NAME="tpch"
+
 
 # step options
 # step 00_compile_tpch
@@ -32,13 +30,11 @@ export RUN_COMPILE_TPCH="true"
 # should true under normal circumstances
 export RUN_GEN_DATA="true"
 export GEN_NEW_DATA="true"
-
 ### Default path to store the generated benchmark data, separated by space for multiple paths.
 export CUSTOM_GEN_PATH="/tmp/hbenchmark"
 ### How many parallel processes to run on each data path to generate data in all modes
 ### Default is 2, max is Number of CPU cores / number of data paths used in each modes. 
 export GEN_DATA_PARALLEL="2"
-
 ### The following variables only take effect when RUN_MODEL is set to "local".
 ### Use custom setting as CUSTOM_GEN_PATH in local mode on segments
 export USING_CUSTOM_GEN_PATH_IN_LOCAL_MODE="false"
@@ -107,6 +103,7 @@ export ADMIN_HOME=$(eval echo ${HOME}/${ADMIN_USER})
 export MASTER_HOST=$(hostname -s)
 export DB_SCHEMA_NAME="$(echo "${DB_SCHEMA_NAME}" | tr '[:upper:]' '[:lower:]')"
 export DB_EXT_SCHEMA_NAME="ext_${DB_SCHEMA_NAME}"
+export GEN_PATH_NAME="hgendata_${DB_SCHEMA_NAME}"
 export BENCH_ROLE="$(echo "${BENCH_ROLE}" | tr '[:upper:]' '[:lower:]')"
 export DB_CURRENT_USER=$(psql ${PSQL_OPTIONS} -t -c "SELECT current_user;" 2>/dev/null | tr -d '[:space:]')
 

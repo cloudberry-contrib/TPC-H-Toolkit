@@ -115,7 +115,14 @@ ssh root@mdw
 yum -y install gcc make
 ```
 
-The TPC-H 3.0.1 source code is included in the repository as `TPCH-software-code-3.0.1.zip` in the 00_compile_tpch directory. Original source can also be downloaded from the [TPC website](http://tpc.org/tpc_documents_current_versions/current_specifications5.asp).
+The TPC-H 3.0.1 source code is included in the repository as `TPCH-software-code-3.0.1.zip` in the 00_compile_tpch directory. The toolkit will automatically:
+
+1. Detect the system architecture (x86 or ARM)
+2. Check if precompiled binaries are available
+3. Compile the tools if needed
+4. Copy the binaries and query templates to the appropriate directories
+
+Original source can also be downloaded from the [TPC website](http://tpc.org/tpc_documents_current_versions/current_specifications5.asp).
 
 ## Installation
 
@@ -145,7 +152,19 @@ cd ~/TPC-H-Toolkit
 To run in the background with logging:
 
 ```bash
-nohup ./run.sh > tpch_$(date +%Y%m%d_%H%M%S).log 2>&1 &
+./run.sh
+```
+
+This will start the benchmark in the background and generate a log file with a timestamp (e.g., `tpch.20251126_143000.log`). You can check the status with:
+
+```bash
+tail -f tpch.<timestamp>.log
+```
+
+To stop a running benchmark:
+
+```bash
+kill $(ps -ef | grep tpch.sh | grep -v grep | awk '{print $2}')
 ```
 
 By default, this will run a scale 1 (1GB) benchmark with 2 concurrent users, executing all steps from data generation through reporting.
@@ -159,18 +178,8 @@ The benchmark is controlled through the `tpch_variables.sh` file with the follow
 # Core settings
 export ADMIN_USER="gpadmin"
 export BENCH_ROLE="hbench"
-export DB_SCHEMA_NAME="tpch"
 
-export RUN_MODEL="local"  # "local" or "cloud"
-
-export PSQL_OPTIONS="-h hostname -p 5432"  # Database connection options
-
-# Cloud mode settings
-export CUSTOM_GEN_PATH="/tmp/dsbenchmark"  # Location for data generation
-export GEN_DATA_PARALLEL="2"             # Parallel data generation processes
-
-# Local mode settings
-export GEN_DATA_PARALLEL="1"  # Parallel processes per segment
+export PSQL_OPTIONS=""  # Database connection options (e.g., "-h hostname -p 5432")
 ```
 
 ### Benchmark Options
@@ -178,60 +187,89 @@ export GEN_DATA_PARALLEL="1"  # Parallel processes per segment
 # Scale and concurrency
 export GEN_DATA_SCALE="1"      # Data scale factor (1 = 1GB)
 export MULTI_USER_COUNT="2"    # Number of concurrent users
+
+## Set to "local" to run the benchmark on the COORDINATOR host or "cloud" to run the benchmark from a remote client.
+export RUN_MODEL="local"  # "local" or "cloud"
+## DB_SCHEMA_NAME should be set to the database schema that will be used to store the TPC-H tables
+export DB_SCHEMA_NAME="tpch"  # Database schema for TPC-H tables
 ```
-
-For large scale tests, recommended configurations:
-- 3TB: `GEN_DATA_SCALE="3000"` with `MULTI_USER_COUNT="5"`
-- 10TB: `GEN_DATA_SCALE="10000"` with `MULTI_USER_COUNT="7"`
-- 30TB: `GEN_DATA_SCALE="30000"` with `MULTI_USER_COUNT="10"`
-
-### Storage Options
-```bash
-# Table storage format
-export TABLE_ACCESS_METHOD="ao_column"  # Options: heap/ao_row/ao_column/pax
-
-export TABLE_STORAGE_OPTIONS="WITH (appendonly=true, orientation=column, compresstype=zstd, compresslevel=5, blocksize=1048576)"
-
-export TABLE_USE_PARTITION="false"  # Enable partitioning for large tables
-```
-
-Table distribution keys are defined in `03_ddl/distribution.txt`. You can modify tables' distribution keys by changing this file, setting distribution method to hash with column names or "REPLICATED".
 
 ### Step Control Options
 ```bash
-# Setup and compilation
+# step 00_compile_tpch
 export RUN_COMPILE_TPCH="true"  # Compile data/query generators
-export RUN_INIT="true"         # Initialize cluster settings
 
-# Data generation and loading
+# step 01_gen_data
 export RUN_GEN_DATA="true"      # Generate test data
 export GEN_NEW_DATA="true"      # Generate new data (when RUN_GEN_DATA=true)
+export CUSTOM_GEN_PATH="/tmp/hbenchmark"  # Custom data generation path(s)
+export GEN_DATA_PARALLEL="2"        # Number of parallel data generation processes
+### The following variables only take effect when RUN_MODEL is set to "local".
+### Use custom setting as CUSTOM_GEN_PATH in local mode on segments
+export USING_CUSTOM_GEN_PATH_IN_LOCAL_MODE="false"
+
+# step 02_init
+export RUN_INIT="true"         # Initialize cluster settings
+
+# step 03_ddl
 export RUN_DDL="true"           # Create database schemas/tables
 export DROP_EXISTING_TABLES="true"  # Drop existing tables (when RUN_DDL=true)
-export RUN_LOAD="true"          # Load generated data
-export RUN_ANALYZE="true"       # Analyze tables after loading
 
-# Query execution
+# step 04_load
+export RUN_LOAD="true"          # Load generated data
+export LOAD_PARALLEL="2"        # Number of parallel loading processes (1-24)
+export TRUNCATE_TABLES="true"    # Truncate existing tables before loading
+
+# step 05_analyze
+export RUN_ANALYZE="true"       # Analyze tables after loading
+export RUN_ANALYZE_PARALLEL="5"  # Number of parallel analyze processes (1-24)
+
+# step 06_sql
 export RUN_SQL="true"                 # Run power test queries
 export RUN_QGEN="true"                # Generate query streams
+export UNIFY_QGEN_SEED="true"         # Use fixed seed for query generation
+export QUERY_INTERVAL="0"             # Wait time between query executions (seconds)
+export ON_ERROR_STOP="0"              # Stop on error (1=true, 0=false)
+
+# step 07_single_user_reports
 export RUN_SINGLE_USER_REPORTS="true" # Generate single-user reports
 
+# step 08_multi_user
 export RUN_MULTI_USER="false"         # Run throughput test queries
 export RUN_MULTI_USER_QGEN="true"     # Generate multi-user queries
+
+# step 09_multi_user_reports
 export RUN_MULTI_USER_REPORTS="false" # Generate multi-user reports
+
+# step 10_score
 export RUN_SCORE="false"              # Compute final benchmark score
 ```
 
 ### Miscellaneous Options
 ```bash
+export LOG_DEBUG="false"                # Enable debug logging
 export SINGLE_USER_ITERATIONS="1"      # Number of power test iterations
 export EXPLAIN_ANALYZE="false"         # Enable query plan analysis
 export ENABLE_VECTORIZATION="off"      # Enable vectorized execution
 export RANDOM_DISTRIBUTION="false"     # Use random distribution for fact tables
-export STATEMENT_MEM="1.9GB"           # Memory per statement (single-user)
+export STATEMENT_MEM="1GB"             # Memory per statement (single-user)
 export STATEMENT_MEM_MULTI_USER="1GB"  # Memory per statement (multi-user)
 export GPFDIST_LOCATION="p"            # gpfdist location (p=primary, m=mirror)
 ```
+
+### Storage Options
+```bash
+# Table storage format (uncomment to use)
+# export TABLE_ACCESS_METHOD="USING ao_column"  # Options: heap/ao_row/ao_column/pax
+# Support TABLE_ACCESS_METHOD as ao_row / ao_column / heap in both GPDB 7 / CBDB
+# Support TABLE_ACCESS_METHOD as "PAX" for PAX table format and remove blocksize option in TABLE_STORAGE_OPTIONS for CBDB 2.0 only.
+# TABLE_ACCESS_METHOD only works for Cloudberry and Greenplum 7.0 or later.
+
+export TABLE_USE_PARTITION="true"  # Enable partitioning for lineitem and orders tables
+export TABLE_STORAGE_OPTIONS="WITH (appendonly=true, orientation=column, compresstype=zstd, compresslevel=5)"
+```
+
+Table distribution keys are defined in `03_ddl/distribution.txt`. You can modify tables' distribution keys by changing this file, setting distribution method to hash with column names or "REPLICATED".
 
 ## Performance Tuning
 
