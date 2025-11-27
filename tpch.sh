@@ -40,6 +40,10 @@ if [ "${DB_VERSION}" == "postgresql" ]; then
   export RUN_MODEL="cloud"
 fi
 
+if [ "${DB_VERSION}" == "hashdata_enterprise_4" ]; then
+  export RUN_MODEL="cloud"
+fi
+
 if [ "${RUN_MODEL}" != "cloud" ]; then
   source_bashrc
 fi
