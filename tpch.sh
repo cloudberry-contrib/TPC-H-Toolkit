@@ -44,6 +44,8 @@ if [ "${DB_VERSION}" == "hashdata_enterprise_4" ]; then
   export RUN_MODEL="cloud"
 fi
 
+log_time "Running TPC-H in ${RUN_MODEL} mode for ${DB_VERSION}."
+
 if [ "${RUN_MODEL}" != "cloud" ]; then
   source_bashrc
 fi
