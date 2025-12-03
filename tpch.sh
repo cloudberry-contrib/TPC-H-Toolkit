@@ -14,7 +14,7 @@ export TPC_H_DIR
 
 log_time "TPC-H test started"
 
-log_time "TPC-H toolkit version is: V1.9"
+log_time "TPC-H toolkit version is: V2.0"
 
 # Check that pertinent variables are set in the variable file.
 check_variables
@@ -39,6 +39,12 @@ fi
 if [ "${DB_VERSION}" == "postgresql" ]; then
   export RUN_MODEL="cloud"
 fi
+
+if [ "${DB_VERSION}" == "hashdata_enterprise_4" ]; then
+  export RUN_MODEL="cloud"
+fi
+
+log_time "Running TPC-H in ${RUN_MODEL} mode for ${DB_VERSION}."
 
 if [ "${RUN_MODEL}" != "cloud" ]; then
   source_bashrc

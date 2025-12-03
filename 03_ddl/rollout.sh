@@ -59,6 +59,7 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
 
     if [ "${DB_VERSION}" == "postgresql" ]; then
       DISTRIBUTED_BY=""
+      TABLE_ACCESS_METHOD=""
       TABLE_STORAGE_OPTIONS=""
     fi
     
@@ -84,22 +85,32 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
       table_name=$(echo ${i} | awk -F '.' '{print $3}')
       export table_name
 
-    if [ "${RANDOM_DISTRIBUTION}" == "true" ]; then
-      DISTRIBUTED_BY="DISTRIBUTED RANDOMLY"
-    else
-      for z in $(cat ${PWD}/${distkeyfile}); do
-        table_name2=$(echo ${z} | awk -F '|' '{print $2}')
-        if [ "${table_name2}" == "${table_name}" ]; then
-          distribution=$(echo ${z} | awk -F '|' '{print $3}')
-        fi
-      done
-      
-      if [ "${distribution^^}" == "REPLICATED" ]; then
-        DISTRIBUTED_BY="DISTRIBUTED REPLICATED"
+      if [ "${RANDOM_DISTRIBUTION}" == "true" ]; then
+        DISTRIBUTED_BY="DISTRIBUTED RANDOMLY"
       else
-        DISTRIBUTED_BY="DISTRIBUTED BY (${distribution})"
+        for z in $(cat ${PWD}/${distkeyfile}); do
+          table_name2=$(echo ${z} | awk -F '|' '{print $2}')
+          if [ "${table_name2}" == "${table_name}" ]; then
+            distribution=$(echo ${z} | awk -F '|' '{print $3}')
+          fi
+        done
+        if [ "${distribution^^}" == "REPLICATED" ]; then
+          DISTRIBUTED_BY="DISTRIBUTED REPLICATED"
+        else
+          DISTRIBUTED_BY="DISTRIBUTED BY (${distribution})"
+        fi
       fi
-    fi
+      
+      if [ "${DB_VERSION}" == "hashdata_enterprise_4" ]; then
+        DISTRIBUTED_BY=""
+        TABLE_ACCESS_METHOD=""
+      fi
+
+      if [ "${DB_VERSION}" == "postgresql" ]; then
+        DISTRIBUTED_BY=""
+        TABLE_ACCESS_METHOD=""
+        TABLE_STORAGE_OPTIONS=""
+      fi
 
       #Drop existing partition tables if they exist
       SQL_QUERY="drop table if exists ${DB_SCHEMA_NAME}.${table_name} cascade"
@@ -115,8 +126,8 @@ if [ "${DROP_EXISTING_TABLES}" == "true" ]; then
       fi
       print_log
     done
-    log_time "TPC-H tables created in ${SECONDS} seconds."
   fi
+  log_time "TPC-H tables created in ${SECONDS} seconds."
 
   if [ "${RUN_MODEL}" != "cloud" ]; then
     #Create external tables

@@ -184,12 +184,14 @@ export PSQL_OPTIONS=""  # Database connection options (e.g., "-h hostname -p 543
 
 ### Benchmark Options
 ```bash
+## Set to "local" to run the benchmark on the COORDINATOR host or "cloud" to run the benchmark from a remote client.
+export RUN_MODEL="local"  # "local" or "cloud"
+export LOG_DEBUG="false"                # Enable debug logging
+
 # Scale and concurrency
 export GEN_DATA_SCALE="1"      # Data scale factor (1 = 1GB)
 export MULTI_USER_COUNT="2"    # Number of concurrent users
 
-## Set to "local" to run the benchmark on the COORDINATOR host or "cloud" to run the benchmark from a remote client.
-export RUN_MODEL="local"  # "local" or "cloud"
 ## DB_SCHEMA_NAME should be set to the database schema that will be used to store the TPC-H tables
 export DB_SCHEMA_NAME="tpch"  # Database schema for TPC-H tables
 ```
@@ -214,6 +216,7 @@ export RUN_INIT="true"         # Initialize cluster settings
 # step 03_ddl
 export RUN_DDL="true"           # Create database schemas/tables
 export DROP_EXISTING_TABLES="true"  # Drop existing tables (when RUN_DDL=true)
+export RANDOM_DISTRIBUTION="false"     # Use random distribution for fact tables
 
 # step 04_load
 export RUN_LOAD="true"          # Load generated data
@@ -227,9 +230,9 @@ export RUN_ANALYZE_PARALLEL="5"  # Number of parallel analyze processes (1-24)
 # step 06_sql
 export RUN_SQL="true"                 # Run power test queries
 export RUN_QGEN="true"                # Generate query streams
-export UNIFY_QGEN_SEED="true"         # Use fixed seed for query generation
+export STATEMENT_MEM="1GB"             # Memory per statement (single-user)
+## Set wait time between each query execution
 export QUERY_INTERVAL="0"             # Wait time between query executions (seconds)
-export ON_ERROR_STOP="0"              # Stop on error (1=true, 0=false)
 
 # step 07_single_user_reports
 export RUN_SINGLE_USER_REPORTS="true" # Generate single-user reports
@@ -237,6 +240,7 @@ export RUN_SINGLE_USER_REPORTS="true" # Generate single-user reports
 # step 08_multi_user
 export RUN_MULTI_USER="false"         # Run throughput test queries
 export RUN_MULTI_USER_QGEN="true"     # Generate multi-user queries
+export STATEMENT_MEM_MULTI_USER="1GB"  # Memory per statement (multi-user)
 
 # step 09_multi_user_reports
 export RUN_MULTI_USER_REPORTS="false" # Generate multi-user reports
@@ -247,13 +251,14 @@ export RUN_SCORE="false"              # Compute final benchmark score
 
 ### Miscellaneous Options
 ```bash
-export LOG_DEBUG="false"                # Enable debug logging
 export SINGLE_USER_ITERATIONS="1"      # Number of power test iterations
 export EXPLAIN_ANALYZE="false"         # Enable query plan analysis
 export ENABLE_VECTORIZATION="off"      # Enable vectorized execution
-export RANDOM_DISTRIBUTION="false"     # Use random distribution for fact tables
-export STATEMENT_MEM="1GB"             # Memory per statement (single-user)
-export STATEMENT_MEM_MULTI_USER="1GB"  # Memory per statement (multi-user)
+## Set to true to generate queries for the TPC-H benchmark with a specific seed "2016032410" to grantee the same query generated for all tests.
+## Set to false to generate queries with a seed when data loading finishes.
+export UNIFY_QGEN_SEED="true"         # Use fixed seed for query generation
+#Set to 1 if you want to stop when error occurs during power and throughput tests
+export ON_ERROR_STOP="0"              # Stop on error (1=true, 0=false)
 export GPFDIST_LOCATION="p"            # gpfdist location (p=primary, m=mirror)
 ```
 

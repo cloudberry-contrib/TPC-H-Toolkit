@@ -10,25 +10,25 @@ export BENCH_ROLE="hbench"
 export PSQL_OPTIONS=""
 
 # benchmark options
-export GEN_DATA_SCALE="1"
-export MULTI_USER_COUNT="2"
 ## Set to "local" to run the benchmark on the COORDINATOR host or "cloud" to run the benchmark from a remote client.
 export RUN_MODEL="local"
+export LOG_DEBUG="false"
+export GEN_DATA_SCALE="1"
+export MULTI_USER_COUNT="2"
 ## DB_SCHEMA_NAME should be set to the database schema that will be used to store the TPC-H tables
 export DB_SCHEMA_NAME="tpch"
-
 
 # step options
 # step 00_compile_tpch
 export RUN_COMPILE_TPCH="true"
 
 # step 01_gen_data
+export RUN_GEN_DATA="true"
 # To run another TPC-H with a different BENCH_ROLE using existing tables and data
 # the queries need to be regenerated with the new role
 # change BENCH_ROLE and set RUN_GEN_DATA to true and GEN_NEW_DATA to false
 # GEN_NEW_DATA only takes affect when RUN_GEN_DATA is true, and the default setting
 # should true under normal circumstances
-export RUN_GEN_DATA="true"
 export GEN_NEW_DATA="true"
 ### Default path to store the generated benchmark data, separated by space for multiple paths.
 export CUSTOM_GEN_PATH="/tmp/hbenchmark"
@@ -49,6 +49,7 @@ export RUN_INIT="true"
 # should true under normal circumstances
 export RUN_DDL="true"
 export DROP_EXISTING_TABLES="true"
+export RANDOM_DISTRIBUTION="false"
 
 # step 04_load
 export RUN_LOAD="true"
@@ -66,13 +67,9 @@ export RUN_ANALYZE_PARALLEL="5"
 export RUN_SQL="true"
 ## Set to true to generate queries for the TPC-DS benchmark.
 export RUN_QGEN="true"
-## Set to true to generate queries for the TPC-DS benchmark with a specific seed "2016032410" to grantee the same query generated for all tests.
-## Set to false to generate queries with a seed when data loading finishes.
-export UNIFY_QGEN_SEED="true"
-#set wait time between each query execution
+export STATEMENT_MEM="1GB"
+## Set wait time between each query execution
 export QUERY_INTERVAL="0"
-#Set to 1 if you want to stop when error occurs
-export ON_ERROR_STOP="0"
 
 # step 07_single_user_reports
 export RUN_SINGLE_USER_REPORTS="true"
@@ -80,6 +77,7 @@ export RUN_SINGLE_USER_REPORTS="true"
 # step 08_multi_user
 export RUN_MULTI_USER="false"
 export RUN_MULTI_USER_QGEN="true"
+export STATEMENT_MEM_MULTI_USER="1GB"
 
 # step 09_multi_user_reports
 export RUN_MULTI_USER_REPORTS="false"
@@ -88,13 +86,14 @@ export RUN_MULTI_USER_REPORTS="false"
 export RUN_SCORE="false"
 
 # Misc options
-export LOG_DEBUG="false"
 export SINGLE_USER_ITERATIONS="1"
 export EXPLAIN_ANALYZE="false"
 export ENABLE_VECTORIZATION="off"
-export RANDOM_DISTRIBUTION="false"
-export STATEMENT_MEM="1GB"
-export STATEMENT_MEM_MULTI_USER="1GB"
+## Set to true to generate queries for the TPC-H benchmark with a specific seed "2016032410" to grantee the same query generated for all tests.
+## Set to false to generate queries with a seed when data loading finishes.
+export UNIFY_QGEN_SEED="true"
+#Set to 1 if you want to stop when error occurs during power and throughput tests
+export ON_ERROR_STOP="0"
 ## Set gpfdist location where gpfdist will run p (primary) or m (mirror)
 export GPFDIST_LOCATION="p"
 export OSVERSION=$(uname)
@@ -118,4 +117,3 @@ export DB_CURRENT_USER=$(psql ${PSQL_OPTIONS} -t -c "SELECT current_user;" 2>/de
 export TABLE_USE_PARTITION="true"
 ## SET TABLE_STORAGE_OPTIONS with different options in GP/CBDB/Cloud "appendoptimized=true, orientation=column, compresstype=zstd, compresslevel=5, blocksize=1048576"
 export TABLE_STORAGE_OPTIONS="WITH (appendonly=true, orientation=column, compresstype=zstd, compresslevel=5)"
-
