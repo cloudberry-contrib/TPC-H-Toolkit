@@ -185,9 +185,6 @@ function copy_tpc()
   cp ${TPC_H_DIR}/00_compile_tpch/dbgen/dists.dss ${TPC_H_DIR}/*_gen_data/
 }
 
-
-${TPC_H_DIR}/00_compile_tpch/dbgen/dbgen ${TPC_H_DIR}/00_compile_tpch/dbgen/dists.dss
-
 step="gen_data"
 
 log_time "Step ${step} started"
