@@ -9,6 +9,11 @@ step="multi_user"
 
 log_time "Step ${step} started"
 
+rm -rf ${TPC_H_DIR}/*_multi_user/queries
+cp -R ${TPC_H_DIR}/00_compile_tpch/dbgen/queries ${TPC_H_DIR}/*_multi_user/
+cp ${TPC_H_DIR}/00_compile_tpch/dbgen/qgen ${TPC_H_DIR}/*_multi_user/queries
+cp ${TPC_H_DIR}/00_compile_tpch/dbgen/dists.dss ${TPC_H_DIR}/*_multi_user/queries
+
 if [ "${DB_CURRENT_USER}" != "${BENCH_ROLE}" ]; then
   GrantSchemaPrivileges="GRANT ALL PRIVILEGES ON SCHEMA ${DB_SCHEMA_NAME} TO ${BENCH_ROLE}"
   GrantTablePrivileges="GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA ${DB_SCHEMA_NAME} TO ${BENCH_ROLE}"
