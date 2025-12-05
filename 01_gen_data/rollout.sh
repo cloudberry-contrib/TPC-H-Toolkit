@@ -193,10 +193,11 @@ init_log ${step}
 start_log
 schema_name=${DB_VERSION}
 table_name="gen_data"
-copy_tpc
+
 
 if [ "${GEN_NEW_DATA}" == "true" ]; then
   log_time "Start generating data with RUN_MODEL ${RUN_MODEL} with GEN_DATA_SCALE ${GEN_DATA_SCALE}."
+  copy_tpc
   SECONDS=0
   if [ "${RUN_MODEL}" != "local" ]; then
     
