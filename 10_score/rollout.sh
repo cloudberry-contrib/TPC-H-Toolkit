@@ -75,7 +75,8 @@ QPHH=$(psql ${PSQL_OPTIONS} -v ON_ERROR_STOP=1 -q -t -A -c "select sqrt(cast(${P
 # 4. Calculate Price/Performance metric
 # Formula: $/kQphH@Size = (1000 * Total System Price) / QphH@Size
 # Note: TOTAL_PRICE should be set as an environment variable with system cost
-if (( $(echo "${QPHH} == 0" | bc -l) )); then
+# Use pure shell comparison (no bc dependency) to check if QPHH is 0 in any common decimal format
+if [[ "${QPHH}" == "0" ]] || [[ "${QPHH}" =~ ^0\.0*$ ]] || [[ -z "${QPHH}" ]]; then
   echo "Warning: QPHH is 0, setting Price/Performance metric to 0"
   PRICE_PER_KQPHH=0
 else
